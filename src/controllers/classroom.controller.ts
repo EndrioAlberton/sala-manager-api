@@ -23,6 +23,38 @@ export class ClassroomController {
         return this.classroomService.searchByRoomNumber(roomNumber);
     }
 
+    @Get('filter')
+    @ApiOperation({ summary: 'Busca salas com filtros' })
+    @ApiQuery({ name: 'hasProjector', description: 'Se a sala tem projetor', required: false })
+    @ApiQuery({ name: 'minCapacity', description: 'Capacidade mínima de alunos', required: false })
+    @ApiQuery({ name: 'maxCapacity', description: 'Capacidade máxima de alunos', required: false })
+    @ApiQuery({ name: 'isAvailable', description: 'Se a sala está disponível', required: false })
+    @ApiResponse({ status: 200, description: 'Salas encontradas com sucesso' })
+    async searchByFilters(
+        @Query('hasProjector') hasProjector?: string,
+        @Query('minCapacity') minCapacity?: string,
+        @Query('maxCapacity') maxCapacity?: string,
+        @Query('isAvailable') isAvailable?: string,
+    ): Promise<ClassRoom[]> {
+        const filters: any = {};
+
+        // Só adiciona os filtros se eles foram fornecidos
+        if (hasProjector !== undefined) {
+            filters.hasProjector = hasProjector.toLowerCase() === 'true';
+        }
+        if (minCapacity !== undefined) {
+            filters.minCapacity = parseInt(minCapacity);
+        }
+        if (maxCapacity !== undefined) {
+            filters.maxCapacity = parseInt(maxCapacity);
+        }
+        if (isAvailable !== undefined) {
+            filters.isAvailable = isAvailable.toLowerCase() === 'true';
+        }
+
+        return this.classroomService.searchByFilters(filters);
+    }
+
     @Get('available')
     @ApiOperation({ summary: 'Lista todas as salas disponíveis' })
     @ApiResponse({ status: 200, description: 'Lista de salas disponíveis retornada com sucesso' })

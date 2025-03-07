@@ -31,9 +31,9 @@ export class ClassRoom {
     @Column({ nullable: true })
     computers: number; // número de computadores
 
-    @ApiProperty({ description: 'Quantidade de projetores', required: false })
-    @Column({ nullable: true })
-    projectors: number; // número de projetores
+    @ApiProperty({ description: 'Indica se a sala possui projetor' })
+    @Column({ default: false })
+    hasProjector: boolean; // se tem projetor
 
     @ApiProperty({ description: 'Capacidade máxima de alunos' })
     @Column()

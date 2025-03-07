@@ -60,4 +60,14 @@ export class ClassroomService {
     async searchByRoomNumber(roomNumber: string): Promise<ClassRoom[]> {
         return this.classroomRepository.searchByRoomNumber(roomNumber);
     }
+
+    // GET /classrooms/filter
+    async searchByFilters(filters: {
+        hasProjector?: boolean;
+        minCapacity?: number;
+        maxCapacity?: number;
+        isAvailable?: boolean;
+    }): Promise<ClassRoom[]> {
+        return this.classroomRepository.searchByFilters(filters);
+    }
 } 
