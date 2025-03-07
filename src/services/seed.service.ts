@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ClassRoom } from '../model/ClassRoom';
+import { ClassRoom } from '../model/classroom.modal';
 
 @Injectable()
 export class SeedService {

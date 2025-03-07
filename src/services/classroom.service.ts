@@ -1,23 +1,21 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Like } from 'typeorm';
-import { ClassRoom } from '../model/ClassRoom';
+import { ClassRoom } from '../model/classroom.modal';
+import { ClassroomRepository } from '../repo/classroom.repository';
 
 @Injectable()
 export class ClassroomService {
     constructor(
-        @InjectRepository(ClassRoom)
-        private classroomRepository: Repository<ClassRoom>,
+        private readonly classroomRepository: ClassroomRepository,
     ) {}
 
     // GET /classrooms
     async findAll(): Promise<ClassRoom[]> {
-        return this.classroomRepository.find();
+        return this.classroomRepository.findAll();
     }
 
     // GET /classrooms/:id
     async findOne(id: number): Promise<ClassRoom> {
-        const classroom = await this.classroomRepository.findOne({ where: { id } });
+        const classroom = await this.classroomRepository.findOne(id);
         if (!classroom) {
             throw new NotFoundException(`Sala com ID ${id} não encontrada`);
         }
@@ -26,54 +24,40 @@ export class ClassroomService {
 
     // POST /classrooms
     async create(classroom: Partial<ClassRoom>): Promise<ClassRoom> {
-        const newClassroom = this.classroomRepository.create(classroom);
-        return this.classroomRepository.save(newClassroom);
+        return this.classroomRepository.create(classroom);
     }
 
     // PUT /classrooms/:id
     async update(id: number, classroom: Partial<ClassRoom>): Promise<ClassRoom> {
         const existingClassroom = await this.findOne(id);
-        Object.assign(existingClassroom, classroom);
-        return this.classroomRepository.save(existingClassroom);
+        return this.classroomRepository.update(id, classroom);
     }
 
     // DELETE /classrooms/:id
     async remove(id: number): Promise<void> {
-        const result = await this.classroomRepository.delete(id);
-        if (result.affected === 0) {
-            throw new NotFoundException(`Sala com ID ${id} não encontrada`);
-        }
+        await this.findOne(id); // Verifica se existe
+        await this.classroomRepository.remove(id);
     }
 
     // GET /classrooms/available
     async findAvailable(): Promise<ClassRoom[]> {
-        return this.classroomRepository.find({ where: { isOccupied: false } });
+        return this.classroomRepository.findAvailable();
     }
 
     // PUT /classrooms/:id/occupy
     async occupy(id: number, teacher: string, subject: string): Promise<ClassRoom> {
-        const classroom = await this.findOne(id);
-        classroom.isOccupied = true;
-        classroom.currentTeacher = teacher;
-        classroom.currentSubject = subject;
-        return this.classroomRepository.save(classroom);
+        await this.findOne(id); // Verifica se existe
+        return this.classroomRepository.occupy(id, teacher, subject);
     }
 
     // PUT /classrooms/:id/vacate
     async vacate(id: number): Promise<ClassRoom> {
-        const classroom = await this.findOne(id);
-        classroom.isOccupied = false;
-        classroom.currentTeacher = null;
-        classroom.currentSubject = null;
-        return this.classroomRepository.save(classroom);
+        await this.findOne(id); // Verifica se existe
+        return this.classroomRepository.vacate(id);
     }
 
     // GET /classrooms/search
     async searchByRoomNumber(roomNumber: string): Promise<ClassRoom[]> {
-        return this.classroomRepository.find({
-            where: {
-                roomNumber: Like(`%${roomNumber}%`)
-            }
-        });
+        return this.classroomRepository.searchByRoomNumber(roomNumber);
     }
 } 

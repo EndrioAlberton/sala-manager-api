@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, HttpCode, HttpStatus, Query } from '@nestjs/common';
 import { ClassroomService } from '../services/classroom.service';
-import { ClassRoom } from '../model/ClassRoom';
+import { ClassRoom } from '../model/classroom.modal';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
 
 @ApiTags('classrooms')
