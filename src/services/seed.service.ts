@@ -13,6 +13,7 @@ export class SeedService {
     async seedClassRooms() {
         const classRooms = [
             {
+                roomNumber: '101',
                 floor: 1,
                 building: 'Prédio A',
                 desks: 30,
@@ -23,6 +24,7 @@ export class SeedService {
                 isOccupied: false,
             },
             {
+                roomNumber: '201',
                 floor: 2,
                 building: 'Prédio A',
                 desks: 40,
@@ -33,32 +35,35 @@ export class SeedService {
                 isOccupied: false,
             },
             {
+                roomNumber: '102',
                 floor: 1,
                 building: 'Prédio B',
                 desks: 25,
                 chairs: 25,
-                computers: 12,
+                computers: null,
                 projectors: 1,
                 maxStudents: 25,
                 isOccupied: false,
             },
             {
+                roomNumber: '301',
                 floor: 3,
                 building: 'Prédio A',
                 desks: 35,
                 chairs: 35,
                 computers: 18,
-                projectors: 1,
+                projectors: null,
                 maxStudents: 35,
                 isOccupied: false,
             },
             {
+                roomNumber: '202',
                 floor: 2,
                 building: 'Prédio B',
                 desks: 45,
                 chairs: 45,
-                computers: 22,
-                projectors: 2,
+                computers: null,
+                projectors: null,
                 maxStudents: 45,
                 isOccupied: false,
             },
@@ -67,14 +72,14 @@ export class SeedService {
         for (const room of classRooms) {
             const existingRoom = await this.classRoomRepository.findOne({
                 where: {
-                    floor: room.floor,
+                    roomNumber: room.roomNumber,
                     building: room.building,
                 },
             });
 
             if (!existingRoom) {
                 await this.classRoomRepository.save(room);
-                console.log(`Sala criada: ${room.building} - ${room.floor}º andar`);
+                console.log(`Sala criada: ${room.building} - ${room.roomNumber}`);
             }
         }
     }

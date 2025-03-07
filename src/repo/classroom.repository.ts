@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Like } from 'typeorm';
 import { ClassRoom } from '../model/classroom.modal';
 
 @Injectable()
@@ -25,7 +25,7 @@ export class ClassroomRepository {
     async searchByRoomNumber(roomNumber: string): Promise<ClassRoom[]> {
         return this.repository.find({
             where: {
-                roomNumber: roomNumber
+                roomNumber: Like(`%${roomNumber}%`)
             }
         });
     }
