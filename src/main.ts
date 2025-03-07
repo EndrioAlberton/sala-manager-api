@@ -1,0 +1,27 @@
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+
+  // Configuração do CORS
+  app.enableCors({
+    origin: 'http://localhost:5173', // URL da aplicação web (Vite)
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  });
+
+  const config = new DocumentBuilder()
+    .setTitle('API de Gerenciamento de Salas')
+    .setDescription('API para gerenciamento de salas de aula')
+    .setVersion('1.0')
+    .addTag('classrooms')
+    .build();
+
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api', app, document);
+
+  await app.listen(3000);
+}
+bootstrap(); 
