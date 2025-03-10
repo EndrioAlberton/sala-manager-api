@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule } from '@nestjs/config';
 import { ClassRoom } from './model/classroom.modal';
 import { SeedModule } from './modules/seed.module';
 import { SeedService } from './services/seed.service';
@@ -9,16 +10,15 @@ import { ClassroomRepository } from './repo/classroom.repository';
 
 @Module({
   imports: [
+    ConfigModule.forRoot(),
     TypeOrmModule.forRoot({
-      type: 'mysql',
-      host: 'localhost',
-      port: 3306,
-      username: 'root',
-      password: '',
-      database: 'eng3',
+      type: 'postgres',
+      url: process.env.DATABASE_URL,
       entities: [ClassRoom],
-      synchronize: true, // Não use em produção
-      logging: true,
+      synchronize: true,
+      ssl: {
+        rejectUnauthorized: false
+      }
     }),
     TypeOrmModule.forFeature([ClassRoom]),
     SeedModule,
