@@ -24,7 +24,7 @@ import { ClassroomRepository } from './repo/classroom.repository';
     SeedModule,
   ],
   controllers: [ClassroomController],
-  providers: [ClassroomService, ClassroomRepository],
+  providers: [ClassroomService, ClassroomRepository, SeedService],
 })
 export class AppModule {
   constructor(private seedService: SeedService) {}

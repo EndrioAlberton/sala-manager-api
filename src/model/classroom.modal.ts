@@ -1,5 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
 import { ApiProperty } from '@nestjs/swagger';
+import { IsNotEmpty, IsInt, Min, Max, IsBoolean, IsOptional, MaxLength } from 'class-validator';
 
 @Entity()
 export class ClassRoom {

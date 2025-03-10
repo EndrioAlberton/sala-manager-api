@@ -73,9 +73,18 @@ export class ClassroomRepository {
         return this.repository.save(newClassroom);
     }
 
-    async update(id: number, classroom: Partial<ClassRoom>): Promise<ClassRoom> {
-        await this.repository.update(id, classroom);
-        return this.findOne(id);
+    async update(id: number, data: Partial<ClassRoom>): Promise<ClassRoom> {
+        // Primeiro busca a sala existente
+        const existingRoom = await this.repository.findOne({ where: { id } });
+        if (!existingRoom) {
+            throw new Error('Sala não encontrada');
+        }
+
+        // Mescla os dados existentes com os novos dados
+        const updatedRoom = this.repository.merge(existingRoom, data);
+
+        // Salva as alterações
+        return this.repository.save(updatedRoom);
     }
 
     async remove(id: number): Promise<void> {
