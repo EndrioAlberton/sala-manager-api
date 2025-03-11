@@ -1,93 +1,85 @@
-import { Injectable } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
-import { ClassroomService } from './classroom.service';
-import { LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
+import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import { Occupation } from '../model/occupation.modal';
+import { OccupationRepository } from '../repo/occupation.repository';
 
 @Injectable()
 export class OccupationService {
-    constructor(private classroomService: ClassroomService) {}
+    constructor(
+        private occupationRepository: OccupationRepository
+    ) {}
 
-    async occupyRoom(
-        roomId: number,
-        startDate: Date,
-        endDate: Date,
-        startTime: string,
-        endTime: string,
-        daysOfWeek: number[],
-        teacher: string,
-        subject: string
-    ) {
+    async create(data: {
+        roomId: number;
+        teacher: string;
+        subject: string;
+        startDate: Date;
+        endDate: Date;
+        startTime: string;
+        endTime: string;
+        daysOfWeek: number[];
+    }): Promise<Occupation> {
         // Validações
-        if (new Date(startDate) > new Date(endDate)) {
-            throw new Error('Data inicial deve ser anterior à data final');
+        if (new Date(data.startDate) > new Date(data.endDate)) {
+            throw new HttpException('Data inicial deve ser anterior à data final', HttpStatus.BAD_REQUEST);
         }
 
-        if (startTime >= endTime) {
-            throw new Error('Hora inicial deve ser anterior à hora final');
+        if (data.startTime >= data.endTime) {
+            throw new HttpException('Hora inicial deve ser anterior à hora final', HttpStatus.BAD_REQUEST);
         }
 
-        if (!daysOfWeek.every(day => day >= 1 && day <= 7)) {
-            throw new Error('Dias da semana devem estar entre 1 (segunda) e 7 (domingo)');
+        if (!data.daysOfWeek.every(day => day >= 1 && day <= 7)) {
+            throw new HttpException('Dias da semana devem estar entre 1 e 7', HttpStatus.BAD_REQUEST);
         }
 
-        // Verifica se a sala já está ocupada no período
-        const isAvailable = await this.checkAvailability(
-            roomId,
-            startDate,
-            endDate,
-            startTime,
-            endTime,
-            daysOfWeek
-        );
-
+        // Verifica disponibilidade
+        const isAvailable = await this.checkAvailability(data);
         if (!isAvailable) {
-            throw new Error('Sala já está ocupada neste período');
+            throw new HttpException('Sala já está ocupada neste período', HttpStatus.CONFLICT);
         }
 
-        // Ocupa a sala
-        return this.classroomService.update(roomId, {
-            isOccupied: true,
-            currentTeacher: teacher,
-            currentSubject: subject,
-            startDate: startDate,
-            endDate: endDate,
-            startTime: startTime,
-            endTime: endTime,
-            daysOfWeek: daysOfWeek
-        });
+        return this.occupationRepository.create(data);
     }
 
-    async checkAvailability(
-        roomId: number,
-        startDate: Date,
-        endDate: Date,
-        startTime: string,
-        endTime: string,
-        daysOfWeek: number[]
-    ): Promise<boolean> {
-        const room = await this.classroomService.findOne(roomId);
+    async findByRoom(roomId: number): Promise<Occupation[]> {
+        return this.occupationRepository.findByRoom(roomId);
+    }
 
-        if (!room) {
-            throw new Error('Sala não encontrada');
-        }
+    async findCurrentOccupation(roomId: number): Promise<Occupation | null> {
+        const now = new Date();
+        const currentTime = now.toTimeString().slice(0, 5);
+        const currentDay = now.getDay() || 7; // Converte 0 (domingo) para 7
+        
+        const occupations = await this.occupationRepository.findCurrentOccupation(
+            roomId,
+            now,
+            currentTime
+        );
 
-        if (room.isOccupied) {
-            // Verifica se há sobreposição de horários
-            const currentStart = new Date(room.startDate);
-            const currentEnd = new Date(room.endDate);
-            const newStart = new Date(startDate);
-            const newEnd = new Date(endDate);
+        return occupations.find(occupation => 
+            occupation.daysOfWeek.includes(currentDay) &&
+            occupation.startTime <= currentTime &&
+            occupation.endTime > currentTime
+        ) || null;
+    }
 
-            if (
-                (newStart <= currentEnd && newEnd >= currentStart) &&
-                this.hasTimeOverlap(startTime, endTime, room.startTime, room.endTime) &&
-                this.hasDayOverlap(daysOfWeek, room.daysOfWeek)
-            ) {
-                return false;
-            }
-        }
+    async checkAvailability(data: {
+        roomId: number;
+        startDate: Date;
+        endDate: Date;
+        startTime: string;
+        endTime: string;
+        daysOfWeek: number[];
+    }): Promise<boolean> {
+        const conflictingOccupations = await this.occupationRepository.findConflictingOccupations(
+            data.roomId,
+            new Date(data.startDate),
+            new Date(data.endDate)
+        );
 
-        return true;
+        return !conflictingOccupations.some(occupation => 
+            this.hasTimeOverlap(data.startTime, data.endTime, occupation.startTime, occupation.endTime) &&
+            this.hasDayOverlap(data.daysOfWeek, occupation.daysOfWeek)
+        );
     }
 
     private hasTimeOverlap(start1: string, end1: string, start2: string, end2: string): boolean {
@@ -98,34 +90,16 @@ export class OccupationService {
         return days1.some(day => days2.includes(day));
     }
 
-    @Cron(CronExpression.EVERY_MINUTE)
-    async checkAndUpdateOccupation() {
-        const rooms = await this.classroomService.findAll();
-        const now = new Date();
-        const currentTime = now.toTimeString().slice(0, 5);
-        const currentDay = now.getDay() || 7; // 0 = domingo -> 7
-
-        for (const room of rooms) {
-            if (room.isOccupied && room.endDate) {
-                const endDate = new Date(room.endDate);
-                
-                if (
-                    now > endDate || 
-                    (now.toDateString() === endDate.toDateString() && currentTime > room.endTime) ||
-                    !room.daysOfWeek.includes(currentDay)
-                ) {
-                    await this.classroomService.update(room.id, {
-                        isOccupied: false,
-                        currentTeacher: null,
-                        currentSubject: null,
-                        startDate: null,
-                        endDate: null,
-                        startTime: null,
-                        endTime: null,
-                        daysOfWeek: null
-                    });
-                }
-            }
-        }
+    async findOccupiedRooms(date: Date, time: string): Promise<Occupation[]> {
+        const dayOfWeek = date.getDay() === 0 ? 7 : date.getDay();
+        const occupations = await this.occupationRepository.findByDateAndTime(date, time);
+        
+        return occupations.filter(occupation => {
+            const daysArray = occupation.daysOfWeek.map(Number);
+            const isInDayOfWeek = daysArray.includes(dayOfWeek);
+            const isInTimeRange = occupation.startTime <= time && occupation.endTime > time;
+            
+            return isInDayOfWeek && isInTimeRange;
+        });
     }
 } 

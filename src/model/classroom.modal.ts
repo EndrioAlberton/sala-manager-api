@@ -33,37 +33,10 @@ export class ClassRoom {
     computers: number; // número de computadores
 
     @ApiProperty({ description: 'Indica se a sala possui projetor' })
-    @Column({ default: false })
+    @Column()
     hasProjector: boolean; // se tem projetor
 
     @ApiProperty({ description: 'Capacidade máxima de alunos' })
     @Column()
     maxStudents: number; // quantidade máxima de alunos
-
-    @ApiProperty({ description: 'Indica se a sala está ocupada' })
-    @Column({ default: false })
-    isOccupied: boolean; // se está ocupada
-
-    @ApiProperty({ description: 'Nome do professor atual', required: false })
-    @Column({ nullable: true })
-    currentTeacher: string; // professor ocupante
-
-    @ApiProperty({ description: 'Nome da disciplina atual', required: false })
-    @Column({ nullable: true })
-    currentSubject: string; // disciplina atual
-
-    @Column({ nullable: true })
-    startDate: Date;
-
-    @Column({ nullable: true })
-    endDate: Date;
-
-    @Column({ nullable: true })
-    startTime: string; // formato "HH:mm"
-
-    @Column({ nullable: true })
-    endTime: string; // formato "HH:mm"
-
-    @Column('simple-array', { nullable: true })
-    daysOfWeek: number[]; // 1-7 (segunda = 1, domingo = 7)
 } 

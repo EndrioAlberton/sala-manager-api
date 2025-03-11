@@ -8,6 +8,9 @@ import { ClassroomService } from './services/classroom.service';
 import { ClassroomRepository } from './repo/classroom.repository';
 import { OccupationService } from './services/occupation.service';
 import { ScheduleModule } from '@nestjs/schedule';
+import { Occupation } from './model/occupation.modal';
+import { OccupationController } from './controllers/occupation.controller';
+import { OccupationRepository } from './repo/occupation.repository';
 
 @Module({
   imports: [
@@ -18,20 +21,21 @@ import { ScheduleModule } from '@nestjs/schedule';
       username: 'root',
       password: '',
       database: 'eng3',
-      entities: [ClassRoom],
+      entities: [ClassRoom, Occupation],
       synchronize: true, // Não use em produção
       logging: true,
     }),
-    TypeOrmModule.forFeature([ClassRoom]),
+    TypeOrmModule.forFeature([ClassRoom, Occupation]),
     SeedModule,
     ScheduleModule.forRoot(),
   ],
-  controllers: [ClassroomController],
+  controllers: [ClassroomController, OccupationController],
   providers: [
     ClassroomService, 
     ClassroomRepository, 
     SeedService,
-    OccupationService
+    OccupationService,
+    OccupationRepository
   ],
 })
 export class AppModule {

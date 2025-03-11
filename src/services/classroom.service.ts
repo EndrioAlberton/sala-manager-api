@@ -29,31 +29,14 @@ export class ClassroomService {
 
     // PUT /classrooms/:id
     async update(id: number, classroom: Partial<ClassRoom>): Promise<ClassRoom> {
-        const existingClassroom = await this.findOne(id);
+        await this.findOne(id);
         return this.classroomRepository.update(id, classroom);
     }
 
     // DELETE /classrooms/:id
     async remove(id: number): Promise<void> {
-        await this.findOne(id); // Verifica se existe
+        await this.findOne(id);
         await this.classroomRepository.remove(id);
-    }
-
-    // GET /classrooms/available
-    async findAvailable(): Promise<ClassRoom[]> {
-        return this.classroomRepository.findAvailable();
-    }
-
-    // PUT /classrooms/:id/occupy
-    async occupy(id: number, teacher: string, subject: string): Promise<ClassRoom> {
-        await this.findOne(id); // Verifica se existe
-        return this.classroomRepository.occupy(id, teacher, subject);
-    }
-
-    // PUT /classrooms/:id/vacate
-    async vacate(id: number): Promise<ClassRoom> {
-        await this.findOne(id); // Verifica se existe
-        return this.classroomRepository.vacate(id);
     }
 
     // GET /classrooms/search
@@ -66,7 +49,6 @@ export class ClassroomService {
         hasProjector?: boolean;
         minCapacity?: number;
         maxCapacity?: number;
-        isAvailable?: boolean;
     }): Promise<ClassRoom[]> {
         return this.classroomRepository.searchByFilters(filters);
     }
