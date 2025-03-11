@@ -6,6 +6,8 @@ import { SeedService } from './services/seed.service';
 import { ClassroomController } from './controllers/classroom.controller';
 import { ClassroomService } from './services/classroom.service';
 import { ClassroomRepository } from './repo/classroom.repository';
+import { OccupationService } from './services/occupation.service';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -22,9 +24,15 @@ import { ClassroomRepository } from './repo/classroom.repository';
     }),
     TypeOrmModule.forFeature([ClassRoom]),
     SeedModule,
+    ScheduleModule.forRoot(),
   ],
   controllers: [ClassroomController],
-  providers: [ClassroomService, ClassroomRepository, SeedService],
+  providers: [
+    ClassroomService, 
+    ClassroomRepository, 
+    SeedService,
+    OccupationService
+  ],
 })
 export class AppModule {
   constructor(private seedService: SeedService) {}

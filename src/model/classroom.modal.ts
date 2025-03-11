@@ -51,4 +51,19 @@ export class ClassRoom {
     @ApiProperty({ description: 'Nome da disciplina atual', required: false })
     @Column({ nullable: true })
     currentSubject: string; // disciplina atual
+
+    @Column({ nullable: true })
+    startDate: Date;
+
+    @Column({ nullable: true })
+    endDate: Date;
+
+    @Column({ nullable: true })
+    startTime: string; // formato "HH:mm"
+
+    @Column({ nullable: true })
+    endTime: string; // formato "HH:mm"
+
+    @Column('simple-array', { nullable: true })
+    daysOfWeek: number[]; // 1-7 (segunda = 1, domingo = 7)
 } 
