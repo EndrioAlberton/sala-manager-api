@@ -61,8 +61,6 @@ export class OccupationRepository {
         // Formata a data para YYYY-MM-DD
         const formattedDate = date.toISOString().split('T')[0];
         
-        console.log('Data formatada:', formattedDate);
-
         const occupations = await this.repository
             .createQueryBuilder('occupation')
             .where(`DATE(occupation.startDate) <= DATE(:date)`, { 
@@ -82,10 +80,6 @@ export class OccupationRepository {
                 date: formattedDate
             })
             .getSql();
-
-        console.log('SQL Query:', query);
-        console.log('Ocupações encontradas:', occupations);
-
         return occupations;
     }
 } 

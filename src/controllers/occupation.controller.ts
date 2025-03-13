@@ -48,18 +48,9 @@ export class OccupationController {
         @Query('date') date: string,
         @Query('time') time: string
     ) {
-        console.log('Controller recebeu:', {
-            dateReceived: date,
-            timeReceived: time
-        });
 
         // Garante que a data está no formato correto
         const parsedDate = new Date(date);
-        
-        console.log('Data convertida:', {
-            parsedDate,
-            dayOfWeek: parsedDate.getDay()
-        });
 
         return this.occupationService.findOccupiedRooms(parsedDate, time);
     }

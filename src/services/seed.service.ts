@@ -79,7 +79,6 @@ export class SeedService {
 
             if (!existingRoom) {
                 await this.classRoomRepository.save(room);
-                console.log(`Sala criada: ${room.building} - ${room.roomNumber}`);
             }
         }
     }
