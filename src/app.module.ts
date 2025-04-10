@@ -11,6 +11,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { Occupation } from './model/occupation.modal';
 import { OccupationController } from './controllers/occupation.controller';
 import { OccupationRepository } from './repo/occupation.repository';
+import { User } from './model/user.modal';
 
 @Module({
   imports: [
@@ -21,11 +22,11 @@ import { OccupationRepository } from './repo/occupation.repository';
       username: 'root',
       password: '',
       database: 'eng3',
-      entities: [ClassRoom, Occupation],
+      entities: [ClassRoom, Occupation, User],
       synchronize: true, // Não use em produção
       logging: true,
     }),
-    TypeOrmModule.forFeature([ClassRoom, Occupation]),
+    TypeOrmModule.forFeature([ClassRoom, Occupation, User]),
     SeedModule,
     ScheduleModule.forRoot(),
   ],
