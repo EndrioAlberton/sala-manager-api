@@ -1,6 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsInt, Min, Max, IsBoolean, IsOptional, MaxLength } from 'class-validator';
 
 @Entity()
 export class ClassRoom {
@@ -10,33 +9,33 @@ export class ClassRoom {
 
     @ApiProperty({ description: 'Número da sala' })
     @Column()
-    roomNumber: string; // número da sala
+    roomNumber: string; 
 
     @ApiProperty({ description: 'Número do andar' })
     @Column()
-    floor: number; // andar
+    floor: number; 
 
     @ApiProperty({ description: 'Nome do prédio' })
     @Column()
-    building: string; // prédio
+    building: string;
 
     @ApiProperty({ description: 'Quantidade de mesas' })
     @Column()
-    desks: number; // número de mesas
+    desks: number; 
 
     @ApiProperty({ description: 'Quantidade de cadeiras' })
     @Column()
-    chairs: number; // número de cadeiras
+    chairs: number; 
 
     @ApiProperty({ description: 'Quantidade de computadores', required: false })
     @Column({ nullable: true })
-    computers: number; // número de computadores
+    computers: number; 
 
     @ApiProperty({ description: 'Indica se a sala possui projetor' })
     @Column()
-    hasProjector: boolean; // se tem projetor
+    hasProjector: boolean; 
 
     @ApiProperty({ description: 'Capacidade máxima de alunos' })
     @Column()
-    maxStudents: number; // quantidade máxima de alunos
+    maxStudents: number;
 } 
