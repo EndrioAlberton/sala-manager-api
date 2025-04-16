@@ -12,6 +12,9 @@ import { Occupation } from './model/occupation.modal';
 import { OccupationController } from './controllers/occupation.controller';
 import { OccupationRepository } from './repo/occupation.repository';
 import { User } from './model/user.modal';
+import { UserService } from './services/user.service';
+import { UserController } from './controllers/user.controller';
+import { UserRepository } from './repo/user.repository';
 
 @Module({
   imports: [
@@ -30,13 +33,19 @@ import { User } from './model/user.modal';
     SeedModule,
     ScheduleModule.forRoot(),
   ],
-  controllers: [ClassroomController, OccupationController],
+  controllers: [
+    ClassroomController, 
+    OccupationController,
+    UserController
+  ],
   providers: [
     ClassroomService, 
     ClassroomRepository, 
     SeedService,
     OccupationService,
-    OccupationRepository
+    OccupationRepository,
+    UserService,
+    UserRepository
   ],
 })
 export class AppModule {
