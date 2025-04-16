@@ -42,4 +42,8 @@ export class UserRepository {
             }
         });
     }
+
+    async findByEmail(email: string): Promise<User> {
+        return this.repository.findOne({ where: { email } });
+    }
 }
