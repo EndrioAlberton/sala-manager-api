@@ -62,34 +62,45 @@ export const API_ROUTES = {
         // PUT /classrooms/:id/vacate
         // Libera uma sala
         VACATE: '/classrooms/:id/vacate'
-    }
-};
+    },  
 
 /**
- * Exemplos de Uso:
- * 
- * 1. Listar todas as salas:
- * GET http://localhost:3000/classrooms
- * 
- * 2. Criar uma nova sala:
- * POST http://localhost:3000/classrooms
- * {
- *     "floor": 1,
- *     "building": "Prédio A",
- *     "desks": 30,
- *     "chairs": 30,
- *     "computers": 15,
- *     "projectors": 1,
- *     "maxStudents": 30
- * }
- * 
- * 3. Ocupar uma sala:
- * PUT http://localhost:3000/classrooms/1/occupy
- * {
- *     "teacher": "Prof. Silva",
- *     "subject": "Matemática"
- * }
- * 
- * 4. Liberar uma sala:
- * PUT http://localhost:3000/classrooms/1/vacate
- */ 
+ * Rotas de Usuários
+ * Base: /users
+ */
+
+USERS: {
+    // GET /users
+    // Lista todos os usuários
+    LIST: '/users',
+
+    // GET /users/:id
+    // Busca um usuário específico
+    GET_BY_ID: '/users/:id',
+
+    // POST /users
+    // Cria um novo usuário
+    CREATE: '/users',
+    // Body: {
+    //     "name": string,
+    //     "password": string,
+    //     "userType": string,
+    //     "email": string
+    // }
+
+    // PUT /users/:id
+    // Atualiza um usuário existente
+    UPDATE: '/users/:id',
+    // Body: {
+    //     "name"?: string,
+    //     "password"?: string,
+    //     "userType"?: string,
+    //     "email"?: string
+    // }
+
+    // DELETE /users/:id
+    // Remove um usuário
+    DELETE: '/users/:id'
+
+},};
+
