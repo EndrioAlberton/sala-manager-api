@@ -46,14 +46,15 @@ export class UserService {
 
     // POST /users/login
     async login(email: string, password: string): Promise<{ user: User; token: string }> {
+        // Buscar usuário pelo e-mail (não pelo nome de usuário)
         const user = await this.userRepository.findByEmail(email);
         if (!user) {
-            throw new NotFoundException('Usuário não encontrado');
+            throw new NotFoundException('E-mail não encontrado');
         }
 
         const isPasswordValid = await bcrypt.compare(password, user.password);
         if (!isPasswordValid) {
-            throw new NotFoundException('Credenciais inválidas');
+            throw new NotFoundException('Senha inválida');
         }
 
         // Token simples para simular autenticação

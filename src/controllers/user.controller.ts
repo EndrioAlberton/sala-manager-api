@@ -23,6 +23,7 @@ export class UserController {
 
     @Post('login')
     async login(@Body() credentials: { email: string; password: string }): Promise<{ user: User; token: string }> {
+        // Login por e-mail e senha
         return this.userService.login(credentials.email, credentials.password);
     }
 
