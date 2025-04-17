@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query, NotFoundException, ConflictException, BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
 import { UserService } from '../services/user.service';
-import { User } from '../model/user.modal';
+import { User, UserType } from '../model/user.modal';
 
 @Controller('users')
 export class UserController {
@@ -54,6 +54,20 @@ export class UserController {
     @Put(':id')
     async update(@Param('id') id: number, @Body() userData: Partial<User>): Promise<User> {
         return this.userService.update(id, userData);
+    }
+
+    @Put(':id/type')
+    async updateUserType(
+        @Param('id') id: number, 
+        @Body() data: { userType: UserType }
+    ): Promise<User> {
+        // Verificar se o tipo de usuário é válido
+        if (!Object.values(UserType).includes(data.userType)) {
+            throw new BadRequestException(`Tipo de usuário inválido. Valores permitidos: ${Object.values(UserType).join(', ')}`);
+        }
+        
+        console.log(`Atualizando tipo de usuário ${id} para ${data.userType}`);
+        return this.userService.updateUserType(id, data.userType);
     }
 
     @Delete(':id')
