@@ -45,10 +45,16 @@ export class UserRepository {
 
     async findByEmail(email: string): Promise<User> {
         // Busca específica pelo e-mail
-        return this.repository.findOne({ 
+        console.log(`Buscando usuário pelo e-mail: ${email}`);
+        
+        const user = await this.repository.findOne({ 
             where: { 
                 email: email 
             } 
         });
+        
+        console.log(`Resultado da busca: ${user ? 'Usuário encontrado' : 'Usuário não encontrado'}`);
+        
+        return user;
     }
 }

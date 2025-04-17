@@ -25,38 +25,64 @@ export class UserService {
 
     // POST /users/register
     async register(userData: { name: string; email: string; password: string }): Promise<User> {
+        console.log(`Tentativa de registro para: ${userData.email}`);
+        
         // Verificar se o email já está em uso
         const existingUser = await this.userRepository.findByEmail(userData.email);
         if (existingUser) {
+            console.log(`Email já em uso: ${userData.email}`);
             throw new ConflictException('Este email já está em uso');
         }
 
         // Hash da senha
         const hashedPassword = await bcrypt.hash(userData.password, 10);
         
-        // Criar o usuário
+        // Criar o usuário (com userType padrão)
         const newUser = await this.userRepository.create({
             name: userData.name,
             email: userData.email,
             password: hashedPassword,
+            userType: 'user' // valor padrão para o tipo de usuário
         });
-
+        
+        console.log(`Usuário registrado com sucesso: ${newUser.email}`);
         return newUser;
     }
 
     // POST /users/login
     async login(email: string, password: string): Promise<{ user: User; token: string }> {
+        console.log(`Tentativa de login para email: ${email}`);
+        
+        if (!email || !password) {
+            console.log('Email ou senha faltando');
+            throw new NotFoundException('E-mail e senha são obrigatórios');
+        }
+        
         // Buscar usuário pelo e-mail (não pelo nome de usuário)
         const user = await this.userRepository.findByEmail(email);
         if (!user) {
+            console.log(`Usuário não encontrado para email: ${email}`);
             throw new NotFoundException('E-mail não encontrado');
         }
+        
+        console.log(`Usuário encontrado: ${user.name}, verificando senha...`);
+        console.log(`Senha fornecida: ${password.slice(0, 1)}${'*'.repeat(password.length - 1)}`); 
 
-        const isPasswordValid = await bcrypt.compare(password, user.password);
-        if (!isPasswordValid) {
-            throw new NotFoundException('Senha inválida');
+        try {
+            const isPasswordValid = await bcrypt.compare(password, user.password);
+            console.log(`Resultado da verificação de senha: ${isPasswordValid ? 'válida' : 'inválida'}`);
+            
+            if (!isPasswordValid) {
+                console.log(`Senha inválida para o usuário: ${user.email}`);
+                throw new NotFoundException('Senha inválida');
+            }
+        } catch (error) {
+            console.log('Erro ao comparar senhas:', error);
+            throw new NotFoundException('Erro ao verificar senha');
         }
 
+        console.log(`Autenticação bem-sucedida para: ${user.email}`);
+        
         // Token simples para simular autenticação
         const token = "token-simulado-" + Date.now();
 
