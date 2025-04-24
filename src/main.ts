@@ -6,13 +6,13 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // Configuração do CORS
-  app.enableCors({
-    origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
+app.enableCors({
+    origin: ['http://localhost:5173', 'http://127.0.0.1:5173', 'https://master.d1wjccx8q0pgzn.amplifyapp.com'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
     credentials: true,
-  });
-
+});
+  
   const config = new DocumentBuilder()
     .setTitle('API de Gerenciamento de Salas')
     .setDescription('API para gerenciamento de salas de aula')
