@@ -53,5 +53,6 @@ export class AppModule {
 
   async onModuleInit() {
     await this.seedService.seedClassRooms();
+    await this.seedService.seedUsers();
   }
 } 

@@ -2,12 +2,16 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ClassRoom } from '../model/classroom.modal';
+import { User } from 'src/model/user.modal';
+import { ucs2 } from 'punycode';
 
 @Injectable()
 export class SeedService {
     constructor(
         @InjectRepository(ClassRoom)
         private classRoomRepository: Repository<ClassRoom>,
+        @InjectRepository(User)
+        private userRepository: Repository<User>,
     ) {}
 
     async seedClassRooms() {
@@ -67,7 +71,7 @@ export class SeedService {
                 maxStudents: 45,
                 isOccupied: false,
             },
-        ];
+        ]
 
         for (const room of classRooms) {
             const existingRoom = await this.classRoomRepository.findOne({
@@ -82,4 +86,31 @@ export class SeedService {
             }
         }
     }
-} 
+    async seedUsers() {
+        const users = [
+            {
+                name: 'Admin User',
+                email: 'admin@admin',
+                password: 'admin123',
+                userType: 'admin',
+            },
+            {
+                name: 'Professor User',
+                email: 'professor@professor',
+                password: 'professor123',
+                userType: 'professor',
+            },]
+
+        for (const user of users) {
+            const existingUser = await this.userRepository.findOne({
+                where: {
+                    email: user.email,
+                },
+            });
+
+            if (!existingUser) {
+                await this.userRepository.save(user);
+            }
+        }
+    } 
+}
