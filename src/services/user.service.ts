@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
-import { User, UserType } from '../model/user.modal';
+import { User } from '../model/user.modal';
 import { UserRepository } from '../repo/user.repository';
 import * as bcrypt from 'bcrypt';
 
@@ -37,12 +37,12 @@ export class UserService {
         // Hash da senha
         const hashedPassword = await bcrypt.hash(userData.password, 10);
         
-        // Criar o usuário (sempre como ALUNO por padrão)
+        // Criar o usuário (com userType padrão)
         const newUser = await this.userRepository.create({
             name: userData.name,
             email: userData.email,
             password: hashedPassword,
-            userType: UserType.ALUNO
+            userType: 'user' // valor padrão para o tipo de usuário
         });
         
         console.log(`Usuário registrado com sucesso: ${newUser.email}`);
@@ -105,14 +105,5 @@ export class UserService {
     async remove(id: number): Promise<void> {
         await this.findOne(id);
         await this.userRepository.remove(id);
-    }
-
-    // PUT /users/:id/type
-    async updateUserType(id: number, userType: UserType): Promise<User> {
-        // Verificar se o usuário existe
-        await this.findOne(id);
-        
-        // Atualizar apenas o tipo de usuário
-        return this.userRepository.update(id, { userType });
     }
 } 
