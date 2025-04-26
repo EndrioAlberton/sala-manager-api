@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { User } from '../model/user.modal';
 import { UserRepository } from '../repo/user.repository';
 import * as bcrypt from 'bcrypt';
@@ -24,7 +24,13 @@ export class UserService {
     }
 
     // POST /users/register
-    async register(userData: { name: string; email: string; password: string }): Promise<User> {
+    async register(userData: { name: string; email: string; password: string, userType?: string }): Promise<User> {
+
+        const validUserTypes = ['ALUNO', 'PROFESSOR', 'ADMIN'];
+        if (!userData.userType || !validUserTypes.includes(userData.userType)) {
+            throw new BadRequestException(`Tipo de usuário inválido: ${userData.userType}`);        
+        }
+        const userType = userData.userType || 'ALUNO';
         
         // Verificar se o email já está em uso
         const existingUser = await this.userRepository.findByEmail(userData.email);
@@ -40,7 +46,7 @@ export class UserService {
             name: userData.name,
             email: userData.email,
             password: hashedPassword,
-            userType: 'user' // valor padrão para o tipo de usuário
+            userType 
         });
         
         return newUser;
