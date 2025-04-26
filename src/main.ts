@@ -6,13 +6,20 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // Configuração do CORS
-app.enableCors({
-    origin: ['http://localhost:5173', 'http://127.0.0.1:5173', 'https://salamanager.endrioalberton.com.br/'],
+  app.enableCors({
+    origin: (origin, callback) => {
+        const allowedOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173', 'https://salamanager.endrioalberton.com.br'];
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, origin);
+        } else {
+            callback(new Error('Não permitido pelo CORS'));
+        }
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
     credentials: true,
 });
-  
+
   const config = new DocumentBuilder()
     .setTitle('API de Gerenciamento de Salas')
     .setDescription('API para gerenciamento de salas de aula')
