@@ -26,7 +26,7 @@ import { UserRepository } from './repo/user.repository';
       password: '',
       database: 'eng3',
       entities: [ClassRoom, Occupation, User],
-      synchronize: true, // Não use em produção
+      synchronize: false, // Não use em produção
       logging: true,
     }),
     TypeOrmModule.forFeature([ClassRoom, Occupation, User]),
