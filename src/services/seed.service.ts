@@ -3,7 +3,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ClassRoom } from '../model/classroom.modal';
 import { User } from 'src/model/user.modal';
-import { ucs2 } from 'punycode';
 
 @Injectable()
 export class SeedService {
