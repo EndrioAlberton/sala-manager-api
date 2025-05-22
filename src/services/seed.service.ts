@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ClassRoom } from '../model/classroom.modal';
-import { User } from 'src/model/user.modal';
+import { User, UserType } from '../model/user.modal';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -92,13 +92,13 @@ export class SeedService {
                 name: 'Admin User',
                 email: 'admin@admin',
                 password: await bcrypt.hash('admin123', 10),
-                userType: 'admin',
+                userType: UserType.ADMIN,
             },
             {
                 name: 'Professor User',
                 email: 'professor@professor',
                 password: await bcrypt.hash('professor123', 10),
-                userType: 'professor',
+                userType: UserType.PROFESSOR,
             },
         ];
 
