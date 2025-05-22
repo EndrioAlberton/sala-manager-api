@@ -1,7 +1,8 @@
 import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
-import { User } from '../model/user.modal';
+import { User, UserType } from '../model/user.modal';
 import { UserRepository } from '../repo/user.repository';
 import * as bcrypt from 'bcrypt';
+import * as jwt from 'jsonwebtoken';
 
 @Injectable()
 export class UserService {
@@ -25,28 +26,27 @@ export class UserService {
 
     // POST /users/register
     async register(userData: { name: string; email: string; password: string, userType?: string }): Promise<User> {
-
-        const validUserTypes = ['ALUNO', 'PROFESSOR', 'ADMIN'];
-        if (!userData.userType || !validUserTypes.includes(userData.userType)) {
-            throw new BadRequestException(`Tipo de usuário inválido: ${userData.userType}`);        
-        }
-        const userType = userData.userType || 'ALUNO';
-        
         // Verificar se o email já está em uso
         const existingUser = await this.userRepository.findByEmail(userData.email);
         if (existingUser) {
             throw new ConflictException('Este email já está em uso');
         }
 
+        // Validar o tipo de usuário
+        const userType = userData.userType?.toUpperCase() || UserType.ALUNO;
+        if (!Object.values(UserType).includes(userType as UserType)) {
+            throw new BadRequestException(`Tipo de usuário inválido: ${userData.userType}`);
+        }
+
         // Hash da senha
         const hashedPassword = await bcrypt.hash(userData.password, 10);
         
-        // Criar o usuário (com userType padrão)
+        // Criar o usuário
         const newUser = await this.userRepository.create({
             name: userData.name,
             email: userData.email,
             password: hashedPassword,
-            userType 
+            userType: userType as UserType
         });
         
         return newUser;
@@ -54,12 +54,11 @@ export class UserService {
 
     // POST /users/login
     async login(email: string, password: string): Promise<{ user: User; token: string }> {
-        
         if (!email || !password) {
             throw new NotFoundException('E-mail e senha são obrigatórios');
         }
         
-        // Buscar usuário pelo e-mail (não pelo nome de usuário)
+        // Buscar usuário pelo e-mail
         const user = await this.userRepository.findByEmail(email);
         if (!user) {
             throw new NotFoundException('E-mail não encontrado');
@@ -75,10 +74,20 @@ export class UserService {
             throw new NotFoundException('Erro ao verificar senha');
         }
         
-        // Token simples para simular autenticação
-        const token = "token-simulado-" + Date.now();
+        // Gerar token JWT com informações do usuário
+        const token = jwt.sign(
+            { 
+                userId: user.id,
+                email: user.email,
+                userType: user.userType
+            },
+            process.env.JWT_SECRET || 'sua_chave_secreta',
+            { expiresIn: '24h' }
+        );
 
-        return { user, token };
+        // Remover a senha antes de retornar o usuário
+        const { password: _, ...userWithoutPassword } = user;
+        return { user: userWithoutPassword as User, token };
     }
 
     // PUT /users/:id

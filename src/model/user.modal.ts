@@ -1,6 +1,12 @@
 import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
 import { ApiProperty } from '@nestjs/swagger';
 
+export enum UserType {
+    ADMIN = 'admin',
+    PROFESSOR = 'professor',
+    ALUNO = 'aluno'
+}
+
 @Entity()
 export class User {
     @ApiProperty({ description: 'ID único do usuário' })
@@ -19,9 +25,13 @@ export class User {
     @Column()
     password: string;
 
-    @ApiProperty({ description: 'Tipo de usuário (admin, aluno ou professor)' })
-    @Column()
-    userType: string;
+    @ApiProperty({ description: 'Tipo de usuário (admin, aluno ou professor)', enum: UserType })
+    @Column({
+        type: 'enum',
+        enum: UserType,
+        default: UserType.ALUNO
+    })
+    userType: UserType;
 }
 
 
