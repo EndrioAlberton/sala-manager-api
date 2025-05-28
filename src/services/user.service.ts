@@ -33,9 +33,9 @@ export class UserService {
         }
 
         // Validar o tipo de usuário
-        const userType = userData.userType?.toUpperCase() || UserType.ALUNO;
+        const userType = userData.userType || UserType.ALUNO;
         if (!Object.values(UserType).includes(userType as UserType)) {
-            throw new BadRequestException(`Tipo de usuário inválido: ${userData.userType}`);
+            throw new BadRequestException(`Tipo de usuário inválido: ${userData.userType}. Valores permitidos: ${Object.values(UserType).join(', ')}`);
         }
 
         // Hash da senha
