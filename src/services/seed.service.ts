@@ -90,13 +90,13 @@ export class SeedService {
         const users = [
             {
                 name: 'Admin User',
-                email: 'admin@admin',
+                email: 'admin@gmail.com',
                 password: await bcrypt.hash('admin123', 10),
                 userType: UserType.ADMIN,
             },
             {
                 name: 'Professor User',
-                email: 'professor@professor',
+                email: 'professor@gmail.com',
                 password: await bcrypt.hash('professor123', 10),
                 userType: UserType.PROFESSOR,
             },

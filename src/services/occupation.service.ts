@@ -1,12 +1,32 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
-import { Occupation } from '../model/occupation.modal';
 import { OccupationRepository } from '../repo/occupation.repository';
+import { Occupation } from '../model/occupation.modal';
 
 @Injectable()
 export class OccupationService {
     constructor(
-        private occupationRepository: OccupationRepository
+        private readonly occupationRepository: OccupationRepository
     ) {}
+
+    private generateDatesFromRange(startDate: Date, endDate: Date, daysOfWeek: number[]): Date[] {
+        const dates: Date[] = [];
+        const currentDate = new Date(startDate);
+
+        while (currentDate <= endDate) {
+            // Ajusta o dia da semana para corresponder ao formato usado no frontend
+            // 0 = domingo no JavaScript Date, mas usamos 0-6 no frontend
+            const currentDayOfWeek = currentDate.getDay();
+            
+            if (daysOfWeek.includes(currentDayOfWeek)) {
+                dates.push(new Date(currentDate));
+            }
+            
+            // Avança para o próximo dia
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+
+        return dates;
+    }
 
     async create(data: {
         roomId: number;
@@ -27,17 +47,50 @@ export class OccupationService {
             throw new HttpException('Hora inicial deve ser anterior à hora final', HttpStatus.BAD_REQUEST);
         }
 
-        if (!data.daysOfWeek.every(day => day >= 1 && day <= 7)) {
-            throw new HttpException('Dias da semana devem estar entre 1 e 7', HttpStatus.BAD_REQUEST);
+        if (!data.daysOfWeek.length) {
+            throw new HttpException('Selecione pelo menos um dia da semana', HttpStatus.BAD_REQUEST);
         }
 
-        // Verifica disponibilidade
-        const isAvailable = await this.checkAvailability(data);
-        if (!isAvailable) {
-            throw new HttpException('Sala já está ocupada neste período', HttpStatus.CONFLICT);
+        // Gera as datas específicas baseadas no intervalo e dias da semana
+        const dates = this.generateDatesFromRange(
+            new Date(data.startDate),
+            new Date(data.endDate),
+            data.daysOfWeek
+        );
+
+        if (dates.length === 0) {
+            throw new HttpException(
+                'Nenhuma data gerada para os dias da semana selecionados no intervalo especificado',
+                HttpStatus.BAD_REQUEST
+            );
         }
 
-        return this.occupationRepository.create(data);
+        // Verifica disponibilidade para cada data gerada
+        for (const date of dates) {
+            const isAvailable = await this.checkAvailability({
+                ...data,
+                startDate: date,
+                endDate: date
+            });
+
+            if (!isAvailable) {
+                throw new HttpException(
+                    `Sala já está ocupada para a data ${date.toLocaleDateString()}`,
+                    HttpStatus.CONFLICT
+                );
+            }
+        }
+
+        // Cria uma ocupação para cada data gerada
+        const occupations = dates.map(date => ({
+            ...data,
+            startDate: date,
+            endDate: date,
+            daysOfWeek: [date.getDay()]
+        }));
+
+        const createdOccupations = await this.occupationRepository.createMany(occupations);
+        return createdOccupations[0];
     }
 
     async findByRoom(roomId: number): Promise<Occupation[]> {
