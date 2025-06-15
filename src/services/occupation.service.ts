@@ -1,11 +1,18 @@
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus, BadRequestException, NotFoundException } from '@nestjs/common';
 import { OccupationRepository } from '../repo/occupation.repository';
+import { ClassroomRepository } from '../repo/classroom.repository';
+import { DisciplineRepository } from '../repo/discipline.repository';
+import { UserRepository } from '../repo/user.repository';
 import { Occupation } from '../model/occupation.modal';
+import { UserType } from '../model/user.modal';
 
 @Injectable()
 export class OccupationService {
     constructor(
-        private readonly occupationRepository: OccupationRepository
+        private readonly occupationRepository: OccupationRepository,
+        private readonly classroomRepository: ClassroomRepository,
+        private readonly disciplineRepository: DisciplineRepository,
+        private readonly userRepository: UserRepository,
     ) {}
 
     private generateDatesFromRange(startDate: Date, endDate: Date, daysOfWeek: number[]): Date[] {
@@ -38,6 +45,42 @@ export class OccupationService {
         endTime: string;
         daysOfWeek: number[];
     }): Promise<Occupation> {
+        // Verifica se a sala existe
+        const classroom = await this.classroomRepository.findOne(data.roomId);
+        if (!classroom) {
+            throw new NotFoundException(`Sala com ID ${data.roomId} não encontrada`);
+        }
+
+        // Verifica se o professor existe e é realmente um professor
+        const professor = await this.userRepository.findByEmail(data.teacher);
+        if (!professor) {
+            throw new NotFoundException(`Professor com email ${data.teacher} não encontrado`);
+        }
+        if (professor.userType !== UserType.PROFESSOR) {
+            throw new BadRequestException(`Usuário com email ${data.teacher} não é um professor`);
+        }
+
+        // Verifica se a disciplina pertence ao professor
+        const professorDisciplines = await this.disciplineRepository.findByProfessor(professor.id);
+        const disciplineExists = professorDisciplines.some(d => d.baseDiscipline.name === data.subject);
+        if (!disciplineExists) {
+            throw new BadRequestException(`A disciplina ${data.subject} não está cadastrada para o professor ${data.teacher}`);
+        }
+
+        // Verifica se já existe ocupação para a sala no mesmo horário
+        const existingOccupation = await this.occupationRepository.findConflicting({
+            roomId: data.roomId,
+            startDate: data.startDate,
+            endDate: data.endDate,
+            startTime: data.startTime,
+            endTime: data.endTime,
+            daysOfWeek: data.daysOfWeek
+        });
+
+        if (existingOccupation) {
+            throw new BadRequestException('Já existe uma ocupação para esta sala neste horário');
+        }
+
         // Validações
         if (new Date(data.startDate) > new Date(data.endDate)) {
             throw new HttpException('Data inicial deve ser anterior à data final', HttpStatus.BAD_REQUEST);

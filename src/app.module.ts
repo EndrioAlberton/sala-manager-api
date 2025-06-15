@@ -1,21 +1,28 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
-import { UserController } from './controllers/user.controller';
-import { UserService } from './services/user.service';
-import { UserRepository } from './repo/user.repository';
-import { ClassroomController } from './controllers/classroom.controller';
-import { ClassroomService } from './services/classroom.service';
-import { ClassroomRepository } from './repo/classroom.repository';
-import { OccupationController } from './controllers/occupation.controller';
-import { OccupationService } from './services/occupation.service';
-import { OccupationRepository } from './repo/occupation.repository';
+import { ScheduleModule } from '@nestjs/schedule';
 import { User } from './model/user.modal';
 import { ClassRoom } from './model/classroom.modal';
 import { Occupation } from './model/occupation.modal';
-import { SeedModule } from './modules/seed.module';
+import { Discipline } from './model/discipline.modal';
+import { BaseDiscipline } from './model/base-discipline.modal';
+import { UserController } from './controllers/user.controller';
+import { ClassroomController } from './controllers/classroom.controller';
+import { OccupationController } from './controllers/occupation.controller';
+import { DisciplineController } from './controllers/discipline.controller';
+import { BaseDisciplineController } from './controllers/base-discipline.controller';
+import { UserService } from './services/user.service';
+import { ClassroomService } from './services/classroom.service';
+import { OccupationService } from './services/occupation.service';
+import { DisciplineService } from './services/discipline.service';
+import { BaseDisciplineService } from './services/base-discipline.service';
 import { SeedService } from './services/seed.service';
-import { ScheduleModule } from '@nestjs/schedule';
+import { UserRepository } from './repo/user.repository';
+import { ClassroomRepository } from './repo/classroom.repository';
+import { OccupationRepository } from './repo/occupation.repository';
+import { DisciplineRepository } from './repo/discipline.repository';
+import { BaseDisciplineRepository } from './repo/base-discipline.repository';
 
 @Module({
   imports: [
@@ -29,34 +36,37 @@ import { ScheduleModule } from '@nestjs/schedule';
       username: 'root',
       password: '',
       database: 'eng3',
-      entities: [ClassRoom, Occupation, User],
-      synchronize: false, // Não use em produção
-      logging: true,
+      entities: [User, ClassRoom, Discipline, BaseDiscipline, Occupation],
+      synchronize: true,
     }),
-    TypeOrmModule.forFeature([ClassRoom, Occupation, User]),
-    SeedModule,
+    TypeOrmModule.forFeature([User, ClassRoom, Discipline, BaseDiscipline, Occupation]),
     ScheduleModule.forRoot(),
   ],
   controllers: [
+    UserController,
     ClassroomController, 
     OccupationController,
-    UserController
+    DisciplineController,
+    BaseDisciplineController,
   ],
   providers: [
-    ClassroomService,
-    ClassroomRepository,
-    SeedService,
-    OccupationService,
-    OccupationRepository,
     UserService,
-    UserRepository
+    ClassroomService,
+    OccupationService,
+    DisciplineService,
+    BaseDisciplineService,
+    SeedService,
+    UserRepository,
+    ClassroomRepository,
+    OccupationRepository,
+    DisciplineRepository,
+    BaseDisciplineRepository
   ],
 })
 export class AppModule {
-  constructor(private seedService: SeedService) {}
+  constructor(private readonly seedService: SeedService) {}
 
   async onModuleInit() {
-    await this.seedService.seedClassRooms();
-    await this.seedService.seedUsers();
+    await this.seedService.seed();
   }
 } 
