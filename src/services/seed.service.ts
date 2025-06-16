@@ -240,96 +240,56 @@ export class SeedService {
     }
 
     async seedOccupations() {
-        const rooms = await this.classroomRepository.findAll();
-        if (rooms.length < 4) return;
-
-        const joao = await this.userRepository.findByEmail('joao.silva@escola.com');
-        const maria = await this.userRepository.findByEmail('maria.santos@escola.com');
-
-        if (!joao || !maria) return;
-
-        const disciplines = await this.disciplineRepository.findAll();
-        const baseDisciplines = {
-            matematica: await this.baseDisciplineRepository.findByCode('MAT001'),
-            fisica: await this.baseDisciplineRepository.findByCode('FIS001'),
-            quimica: await this.baseDisciplineRepository.findByCode('QUI001'),
-            biologia: await this.baseDisciplineRepository.findByCode('BIO001')
-        };
-
-        const matematica = disciplines.find(d => 
-            d.baseDisciplineId === baseDisciplines.matematica.id && 
-            d.professorId === joao.id
-        );
-        const fisica = disciplines.find(d => 
-            d.baseDisciplineId === baseDisciplines.fisica.id && 
-            d.professorId === joao.id
-        );
-        const quimica = disciplines.find(d => 
-            d.baseDisciplineId === baseDisciplines.quimica.id && 
-            d.professorId === maria.id
-        );
-        const biologia = disciplines.find(d => 
-            d.baseDisciplineId === baseDisciplines.biologia.id && 
-            d.professorId === maria.id
-        );
-
-        if (!matematica || !fisica || !quimica || !biologia) return;
+        // Verifica se já existem ocupações
+        const existingCount = await this.occupationRepository.count();
+        if (existingCount > 0) {
+            return; // Se já existem ocupações, não faz nada
+        }
 
         const occupations = [
             {
-                roomId: rooms[0].id,
-                teacher: joao.email,
-                subject: baseDisciplines.matematica.name,
-                startDate: new Date('2025-06-15'),
-                endDate: new Date('2025-07-30'),
+                roomId: 1,
+                teacher: 'joao.silva@escola.com',
+                subject: 'Matemática',
+                startDate: new Date('2025-06-14'),
+                endDate: new Date('2025-07-29'),
                 startTime: '07:30',
                 endTime: '09:10',
-                daysOfWeek: [2]
+                daysOfWeek: [2] // Terça
             },
             {
-                roomId: rooms[1].id,
-                teacher: maria.email,
-                subject: baseDisciplines.quimica.name,
-                startDate: new Date('2025-06-15'),
-                endDate: new Date('2025-07-30'),
+                roomId: 2,
+                teacher: 'maria.santos@escola.com',
+                subject: 'Química',
+                startDate: new Date('2025-06-14'),
+                endDate: new Date('2025-07-29'),
                 startTime: '08:00',
                 endTime: '09:40',
-                daysOfWeek: [2]
+                daysOfWeek: [2] // Terça
             },
             {
-                roomId: rooms[2].id,
-                teacher: joao.email,
-                subject: baseDisciplines.fisica.name,
-                startDate: new Date('2025-06-15'),
-                endDate: new Date('2025-07-30'),
+                roomId: 3,
+                teacher: 'joao.silva@escola.com',
+                subject: 'Física',
+                startDate: new Date('2025-06-14'),
+                endDate: new Date('2025-07-29'),
                 startTime: '09:20',
                 endTime: '11:00',
-                daysOfWeek: [2]
+                daysOfWeek: [2] // Terça
             },
             {
-                roomId: rooms[3].id,
-                teacher: maria.email,
-                subject: baseDisciplines.biologia.name,
-                startDate: new Date('2025-06-15'),
-                endDate: new Date('2025-07-30'),
+                roomId: 4,
+                teacher: 'maria.santos@escola.com',
+                subject: 'Biologia',
+                startDate: new Date('2025-06-14'),
+                endDate: new Date('2025-07-29'),
                 startTime: '09:50',
                 endTime: '11:30',
-                daysOfWeek: [2]
+                daysOfWeek: [2] // Terça
             }
         ];
 
-        for (const occupation of occupations) {
-            const existingOccupations = await this.occupationRepository.findByRoom(occupation.roomId);
-            const existing = existingOccupations.find(o => 
-                o.teacher === occupation.teacher &&
-                o.startTime === occupation.startTime &&
-                o.endTime === occupation.endTime &&
-                o.daysOfWeek.includes(occupation.daysOfWeek[0])
-            );
-
-            if (!existing) {
-                await this.occupationRepository.create(occupation);
-            }
-        }
+        // Cria todas as ocupações de uma vez
+        await this.occupationRepository.createMany(occupations);
     }
 }

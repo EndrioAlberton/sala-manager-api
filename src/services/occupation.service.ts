@@ -20,15 +20,12 @@ export class OccupationService {
         const currentDate = new Date(startDate);
 
         while (currentDate <= endDate) {
-            // Ajusta o dia da semana para corresponder ao formato usado no frontend
-            // 0 = domingo no JavaScript Date, mas usamos 0-6 no frontend
             const currentDayOfWeek = currentDate.getDay();
             
             if (daysOfWeek.includes(currentDayOfWeek)) {
                 dates.push(new Date(currentDate));
             }
             
-            // Avança para o próximo dia
             currentDate.setDate(currentDate.getDate() + 1);
         }
 
@@ -39,101 +36,115 @@ export class OccupationService {
         roomId: number;
         teacher: string;
         subject: string;
-        startDate: Date;
-        endDate: Date;
+        startDate: string | Date;
+        endDate: string | Date;
         startTime: string;
         endTime: string;
         daysOfWeek: number[];
     }): Promise<Occupation> {
-        // Verifica se a sala existe
-        const classroom = await this.classroomRepository.findOne(data.roomId);
-        if (!classroom) {
-            throw new NotFoundException(`Sala com ID ${data.roomId} não encontrada`);
+        const room = await this.classroomRepository.findOne(data.roomId);
+        if (!room) {
+            throw new NotFoundException('Sala não encontrada');
         }
 
-        // Verifica se o professor existe e é realmente um professor
-        const professor = await this.userRepository.findByEmail(data.teacher);
-        if (!professor) {
-            throw new NotFoundException(`Professor com email ${data.teacher} não encontrado`);
-        }
-        if (professor.userType !== UserType.PROFESSOR) {
-            throw new BadRequestException(`Usuário com email ${data.teacher} não é um professor`);
+        const teacher = await this.userRepository.findByEmail(data.teacher);
+        if (!teacher) {
+            throw new NotFoundException('Professor não encontrado');
         }
 
-        // Verifica se a disciplina pertence ao professor
-        const professorDisciplines = await this.disciplineRepository.findByProfessor(professor.id);
-        const disciplineExists = professorDisciplines.some(d => d.baseDiscipline.name === data.subject);
-        if (!disciplineExists) {
-            throw new BadRequestException(`A disciplina ${data.subject} não está cadastrada para o professor ${data.teacher}`);
+        if (teacher.userType !== UserType.PROFESSOR) {
+            throw new BadRequestException('Apenas professores podem criar ocupações');
         }
 
-        // Verifica se já existe ocupação para a sala no mesmo horário
-        const existingOccupation = await this.occupationRepository.findConflicting({
-            roomId: data.roomId,
+        // Converte as datas para string ISO caso sejam objetos Date
+        const startDateStr = typeof data.startDate === 'string' ? data.startDate : data.startDate.toISOString();
+        const endDateStr = typeof data.endDate === 'string' ? data.endDate : data.endDate.toISOString();
+
+        console.log('Dados recebidos:', {
             startDate: data.startDate,
             endDate: data.endDate,
+            startDateStr,
+            endDateStr
+        });
+
+        // Extrai a data do formato ISO (YYYY-MM-DDTHH:mm:ss.sssZ)
+        const startDateOnly = startDateStr.split('T')[0];
+        const endDateOnly = endDateStr.split('T')[0];
+
+        // Extrai os componentes da data do formato YYYY-MM-DD
+        const [startYear, startMonth, startDay] = startDateOnly.split('-').map(Number);
+        const [endYear, endMonth, endDay] = endDateOnly.split('-').map(Number);
+
+        console.log('Componentes das datas:', {
+            start: { startDay, startMonth, startYear },
+            end: { endDay, endMonth, endYear }
+        });
+
+        // Cria as datas usando os componentes individuais para preservar o dia exato
+        const startDate = new Date(startYear, startMonth - 1, startDay, 12, 0, 0);
+        const endDate = new Date(endYear, endMonth - 1, endDay, 12, 0, 0);
+
+        console.log('Datas criadas (raw):', {
+            startDate,
+            endDate,
+            startTime: startDate.getTime(),
+            endTime: endDate.getTime()
+        });
+
+        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+            throw new BadRequestException('Datas inválidas');
+        }
+
+        console.log('Datas finais:', { 
+            startDate: startDate.toLocaleDateString('pt-BR'),
+            endDate: endDate.toLocaleDateString('pt-BR')
+        });
+
+        const [startHour, startMinute] = data.startTime.split(':').map(Number);
+        const [endHour, endMinute] = data.endTime.split(':').map(Number);
+        const startTimeMinutes = startHour * 60 + startMinute;
+        const endTimeMinutes = endHour * 60 + endMinute;
+
+        if (startTimeMinutes >= endTimeMinutes) {
+            throw new BadRequestException('Horário inicial deve ser menor que o horário final');
+        }
+
+        if (startHour < 7 || startHour >= 23) {
+            throw new BadRequestException('Horário inicial deve ser entre 7:00 e 23:00');
+        }
+        if (endHour < 7 || endHour > 23) {
+            throw new BadRequestException('Horário final deve ser entre 7:00 e 23:00');
+        }
+
+        if (!data.daysOfWeek.length) {
+            throw new BadRequestException('Selecione pelo menos um dia da semana');
+        }
+
+        const isAvailable = await this.checkAvailability({
+            roomId: data.roomId,
+            startDate,
+            endDate,
             startTime: data.startTime,
             endTime: data.endTime,
             daysOfWeek: data.daysOfWeek
         });
 
-        if (existingOccupation) {
-            throw new BadRequestException('Já existe uma ocupação para esta sala neste horário');
+        if (!isAvailable) {
+            throw new BadRequestException('Já existe uma ocupação em algum dos horários selecionados');
         }
 
-        // Validações
-        if (new Date(data.startDate) > new Date(data.endDate)) {
-            throw new HttpException('Data inicial deve ser anterior à data final', HttpStatus.BAD_REQUEST);
-        }
+        const occupation = await this.occupationRepository.create({
+            roomId: data.roomId,
+            teacher: data.teacher,
+            subject: data.subject,
+            startDate,
+            endDate,
+            startTime: data.startTime,
+            endTime: data.endTime,
+            daysOfWeek: data.daysOfWeek.sort((a, b) => a - b) 
+        });
 
-        if (data.startTime >= data.endTime) {
-            throw new HttpException('Hora inicial deve ser anterior à hora final', HttpStatus.BAD_REQUEST);
-        }
-
-        if (!data.daysOfWeek.length) {
-            throw new HttpException('Selecione pelo menos um dia da semana', HttpStatus.BAD_REQUEST);
-        }
-
-        // Gera as datas específicas baseadas no intervalo e dias da semana
-        const dates = this.generateDatesFromRange(
-            new Date(data.startDate),
-            new Date(data.endDate),
-            data.daysOfWeek
-        );
-
-        if (dates.length === 0) {
-            throw new HttpException(
-                'Nenhuma data gerada para os dias da semana selecionados no intervalo especificado',
-                HttpStatus.BAD_REQUEST
-            );
-        }
-
-        // Verifica disponibilidade para cada data gerada
-        for (const date of dates) {
-            const isAvailable = await this.checkAvailability({
-                ...data,
-                startDate: date,
-                endDate: date
-            });
-
-            if (!isAvailable) {
-                throw new HttpException(
-                    `Sala já está ocupada para a data ${date.toLocaleDateString()}`,
-                    HttpStatus.CONFLICT
-                );
-            }
-        }
-
-        // Cria uma ocupação para cada data gerada
-        const occupations = dates.map(date => ({
-            ...data,
-            startDate: date,
-            endDate: date,
-            daysOfWeek: [date.getDay()]
-        }));
-
-        const createdOccupations = await this.occupationRepository.createMany(occupations);
-        return createdOccupations[0];
+        return occupation;
     }
 
     async findByRoom(roomId: number): Promise<Occupation[]> {
@@ -143,13 +154,9 @@ export class OccupationService {
     async findCurrentOccupation(roomId: number): Promise<Occupation | null> {
         const now = new Date();
         const currentTime = now.toTimeString().slice(0, 5);
-        const currentDay = now.getDay() || 7; // Converte 0 (domingo) para 7
+        const currentDay = now.getDay() || 7;
         
-        const occupations = await this.occupationRepository.findCurrentOccupation(
-            roomId,
-            now,
-            currentTime
-        );
+        const occupations = await this.occupationRepository.findCurrentOccupation(roomId);
 
         return occupations.find(occupation => 
             occupation.daysOfWeek.includes(currentDay) &&
@@ -179,7 +186,19 @@ export class OccupationService {
     }
 
     private hasTimeOverlap(start1: string, end1: string, start2: string, end2: string): boolean {
-        return start1 < end2 && end1 > start2;
+        // Converte os horários para minutos para uma comparação
+        const [start1Hour, start1Minute] = start1.split(':').map(Number);
+        const [end1Hour, end1Minute] = end1.split(':').map(Number);
+        const [start2Hour, start2Minute] = start2.split(':').map(Number);
+        const [end2Hour, end2Minute] = end2.split(':').map(Number);
+
+        const start1Minutes = start1Hour * 60 + start1Minute;
+        const end1Minutes = end1Hour * 60 + end1Minute;
+        const start2Minutes = start2Hour * 60 + start2Minute;
+        const end2Minutes = end2Hour * 60 + end2Minute;
+
+        // Verifica se há sobreposição
+        return (start1Minutes < end2Minutes && end1Minutes > start2Minutes);
     }
 
     private hasDayOverlap(days1: number[], days2: number[]): boolean {
@@ -187,15 +206,12 @@ export class OccupationService {
     }
 
     async findOccupiedRooms(date: Date, time: string): Promise<Occupation[]> {
-        const dayOfWeek = date.getDay() === 0 ? 7 : date.getDay();
+        const dayOfWeek = date.getDay();
+        
         const occupations = await this.occupationRepository.findByDateAndTime(date, time);
         
         return occupations.filter(occupation => {
-            const daysArray = occupation.daysOfWeek.map(Number);
-            const isInDayOfWeek = daysArray.includes(dayOfWeek);
-            const isInTimeRange = occupation.startTime <= time && occupation.endTime > time;
-            
-            return isInDayOfWeek && isInTimeRange;
+            return occupation.daysOfWeek.includes(dayOfWeek);
         });
     }
 } 

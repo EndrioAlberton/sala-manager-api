@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, LessThanOrEqual, MoreThanOrEqual, MoreThan } from 'typeorm';
+import { Repository, LessThanOrEqual, MoreThanOrEqual, Between } from 'typeorm';
 import { Occupation } from '../model/occupation.modal';
 
 @Injectable()
@@ -30,13 +30,21 @@ export class OccupationRepository {
         return this.findOne(id);
     }
 
-    async remove(id: number): Promise<void> {
+    async delete(id: number): Promise<void> {
         await this.repository.delete(id);
     }
 
+    async find(options: any): Promise<Occupation[]> {
+        return this.repository.find(options);
+    }
+
     async findByRoom(roomId: number): Promise<Occupation[]> {
+        const currentDate = new Date();
         return this.repository.find({
-            where: { roomId },
+            where: {
+                roomId,
+                endDate: MoreThanOrEqual(currentDate)
+            },
             order: {
                 startDate: 'ASC',
                 startTime: 'ASC'
@@ -44,13 +52,23 @@ export class OccupationRepository {
         });
     }
 
-    async findCurrentOccupation(roomId: number, currentDate: Date, currentTime: string): Promise<Occupation[]> {
-        return this.repository.find({
+    async findCurrentOccupation(roomId: number): Promise<Occupation[]> {
+        const currentDate = new Date();
+        const currentDay = currentDate.getDay();
+        const currentTime = currentDate.toLocaleTimeString('pt-BR', { hour12: false }).substring(0, 5);
+
+        const occupations = await this.repository.find({
             where: {
                 roomId,
                 startDate: LessThanOrEqual(currentDate),
                 endDate: MoreThanOrEqual(currentDate)
             }
+        });
+
+        return occupations.filter(occupation => {
+            return occupation.daysOfWeek.includes(currentDay) &&
+                   occupation.startTime <= currentTime &&
+                   occupation.endTime > currentTime;
         });
     }
 
@@ -59,23 +77,63 @@ export class OccupationRepository {
         startDate: Date,
         endDate: Date
     ): Promise<Occupation[]> {
+        // Cria novas datas mantendo o dia exato
+        const searchStartDate = new Date(
+            startDate.getFullYear(),
+            startDate.getMonth(),
+            startDate.getDate()
+        );
+        
+        const searchEndDate = new Date(
+            endDate.getFullYear(),
+            endDate.getMonth(),
+            endDate.getDate()
+        );
+
         // Busca ocupações que se sobrepõem com o período especificado
         return this.repository.find({
             where: {
                 roomId,
-                startDate: LessThanOrEqual(endDate),
-                endDate: MoreThanOrEqual(startDate)
+                startDate: LessThanOrEqual(searchEndDate),
+                endDate: MoreThanOrEqual(searchStartDate)
+            },
+            order: {
+                startDate: 'ASC',
+                startTime: 'ASC'
             }
         });
     }
 
     async findByDateAndTime(date: Date, time: string): Promise<Occupation[]> {
-        // Busca ocupações para uma data e horário específicos
-        return this.repository.find({
+        // Cria nova data mantendo o dia exato
+        const searchDate = new Date(
+            date.getFullYear(),
+            date.getMonth(),
+            date.getDate()
+        );
+
+        // Busca ocupações que incluem a data especificada
+        const occupations = await this.repository.find({
             where: {
-                startDate: LessThanOrEqual(date),
-                endDate: MoreThanOrEqual(date)
+                startDate: LessThanOrEqual(searchDate),
+                endDate: MoreThanOrEqual(searchDate)
             }
+        });
+
+        // Filtra as ocupações pelo horário
+        return occupations.filter(occupation => {
+            // Converte os horários para minutos para comparação
+            const [searchHour, searchMinute] = time.split(':').map(Number);
+            const searchTimeInMinutes = searchHour * 60 + searchMinute;
+
+            const [startHour, startMinute] = occupation.startTime.split(':').map(Number);
+            const [endHour, endMinute] = occupation.endTime.split(':').map(Number);
+            
+            const startTimeInMinutes = startHour * 60 + startMinute;
+            const endTimeInMinutes = endHour * 60 + endMinute;
+
+            // Verifica se o horário está dentro do intervalo
+            return searchTimeInMinutes >= startTimeInMinutes && searchTimeInMinutes < endTimeInMinutes;
         });
     }
 
@@ -133,8 +191,12 @@ export class OccupationRepository {
             where: {
                 teacher,
                 subject,
-                endDate: MoreThan(currentDate)
+                endDate: MoreThanOrEqual(currentDate)
             }
         });
+    }
+
+    async count(): Promise<number> {
+        return this.repository.count();
     }
 } 

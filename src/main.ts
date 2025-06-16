@@ -20,6 +20,9 @@ async function bootstrap() {
     credentials: true,
 });
 
+  // Adiciona o prefixo /api em todas as rotas
+  app.setGlobalPrefix('api');
+
   const config = new DocumentBuilder()
     .setTitle('API de Gerenciamento de Salas')
     .setDescription('API para gerenciamento de salas de aula')
