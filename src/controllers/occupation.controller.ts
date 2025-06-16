@@ -48,9 +48,21 @@ export class OccupationController {
         @Query('date') date: string,
         @Query('time') time: string
     ) {
+        console.log('Recebendo requisição de salas ocupadas:', { date, time });
 
-        // Garante que a data está no formato correto
-        const parsedDate = new Date(date);
+        // Extrai a data do formato ISO (YYYY-MM-DDTHH:mm:ss.sssZ)
+        const dateOnly = date.split('T')[0];
+        const [year, month, day] = dateOnly.split('-').map(Number);
+        
+        // Cria a data usando os componentes individuais
+        const parsedDate = new Date(year, month - 1, day, 12, 0, 0);
+
+        console.log('Data parseada:', {
+            dateOnly,
+            components: { year, month, day },
+            parsedDate: parsedDate.toLocaleDateString('pt-BR'),
+            dayOfWeek: parsedDate.getDay()
+        });
 
         return this.occupationService.findOccupiedRooms(parsedDate, time);
     }

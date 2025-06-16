@@ -206,12 +206,20 @@ export class OccupationService {
     }
 
     async findOccupiedRooms(date: Date, time: string): Promise<Occupation[]> {
+        // Pega o dia da semana (0-6, onde 0 é domingo)
         const dayOfWeek = date.getDay();
+        const diasSemana = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'] as const;
         
+        // Busca todas as ocupações que incluem a data e horário
         const occupations = await this.occupationRepository.findByDateAndTime(date, time);
         
-        return occupations.filter(occupation => {
-            return occupation.daysOfWeek.includes(dayOfWeek);
+        // Filtra apenas as ocupações que acontecem no dia da semana atual
+        const filteredOccupations = occupations.filter(occupation => {
+            // Converte os dias da semana de string para número
+            const daysOfWeekAsNumbers = occupation.daysOfWeek.map(day => Number(day));
+            return daysOfWeekAsNumbers.includes(dayOfWeek);
         });
+
+        return filteredOccupations;
     }
 } 

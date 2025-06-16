@@ -105,23 +105,45 @@ export class OccupationRepository {
     }
 
     async findByDateAndTime(date: Date, time: string): Promise<Occupation[]> {
+        console.log('Buscando no repositório:', {
+            date: date.toLocaleDateString('pt-BR'),
+            time
+        });
+
         // Cria nova data mantendo o dia exato
         const searchDate = new Date(
             date.getFullYear(),
             date.getMonth(),
-            date.getDate()
+            date.getDate(),
+            12, 0, 0
         );
+
+        console.log('Data de busca:', {
+            searchDate: searchDate.toLocaleDateString('pt-BR')
+        });
 
         // Busca ocupações que incluem a data especificada
         const occupations = await this.repository.find({
-            where: {
-                startDate: LessThanOrEqual(searchDate),
-                endDate: MoreThanOrEqual(searchDate)
-            }
+            where: [
+                {
+                    startDate: LessThanOrEqual(searchDate),
+                    endDate: MoreThanOrEqual(searchDate)
+                }
+            ]
         });
 
+        console.log('Ocupações encontradas no banco:', occupations.map(o => ({
+            id: o.id,
+            roomId: o.roomId,
+            startDate: o.startDate.toLocaleDateString('pt-BR'),
+            endDate: o.endDate.toLocaleDateString('pt-BR'),
+            startTime: o.startTime,
+            endTime: o.endTime,
+            daysOfWeek: o.daysOfWeek
+        })));
+
         // Filtra as ocupações pelo horário
-        return occupations.filter(occupation => {
+        const filteredOccupations = occupations.filter(occupation => {
             // Converte os horários para minutos para comparação
             const [searchHour, searchMinute] = time.split(':').map(Number);
             const searchTimeInMinutes = searchHour * 60 + searchMinute;
@@ -133,8 +155,22 @@ export class OccupationRepository {
             const endTimeInMinutes = endHour * 60 + endMinute;
 
             // Verifica se o horário está dentro do intervalo
-            return searchTimeInMinutes >= startTimeInMinutes && searchTimeInMinutes < endTimeInMinutes;
+            const timeMatches = searchTimeInMinutes >= startTimeInMinutes && searchTimeInMinutes < endTimeInMinutes;
+
+            console.log('Verificando horários:', {
+                id: occupation.id,
+                searchTime: time,
+                startTime: occupation.startTime,
+                endTime: occupation.endTime,
+                timeMatches
+            });
+
+            return timeMatches;
         });
+
+        console.log('Ocupações após filtro de horário:', filteredOccupations.length);
+
+        return filteredOccupations;
     }
 
     async createMany(occupations: Partial<Occupation>[]): Promise<Occupation[]> {
