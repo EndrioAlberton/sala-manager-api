@@ -1,11 +1,13 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { ClassRoom } from '../model/classroom.modal';
 import { ClassroomRepository } from '../repo/classroom.repository';
+import { OccupationRepository } from '../repo/occupation.repository';
 
 @Injectable()
 export class ClassroomService {
     constructor(
         private readonly classroomRepository: ClassroomRepository,
+        private readonly occupationRepository: OccupationRepository,
     ) {}
 
     // GET /classrooms
@@ -35,7 +37,17 @@ export class ClassroomService {
 
     // DELETE /classrooms/:id
     async remove(id: number): Promise<void> {
-        await this.findOne(id);
+        const classroom = await this.findOne(id);
+        
+        // Verifica se existem ocupações para esta sala
+        const occupations = await this.occupationRepository.findByRoomId(id);
+        
+        if (occupations.length > 0) {
+            throw new ConflictException(
+                `Não é possível remover a sala ${classroom.roomNumber} pois existem ocupações registradas para ela`
+            );
+        }
+
         await this.classroomRepository.remove(id);
     }
 

@@ -235,4 +235,15 @@ export class OccupationRepository {
     async count(): Promise<number> {
         return this.repository.count();
     }
+
+    async findByRoomId(roomId: number): Promise<Occupation[]> {
+        const currentDate = new Date();
+        
+        return this.repository.find({
+            where: {
+                roomId: roomId,
+                endDate: MoreThanOrEqual(currentDate) // Busca apenas ocupações que ainda não terminaram
+            }
+        });
+    }
 } 

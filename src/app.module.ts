@@ -44,7 +44,7 @@ import { BaseDisciplineRepository } from './repo/base-discipline.repository';
   ],
   controllers: [
     UserController,
-    ClassroomController, 
+    ClassroomController,
     OccupationController,
     DisciplineController,
     BaseDisciplineController,
