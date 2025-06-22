@@ -60,13 +60,6 @@ export class OccupationService {
         const startDateStr = typeof data.startDate === 'string' ? data.startDate : data.startDate.toISOString();
         const endDateStr = typeof data.endDate === 'string' ? data.endDate : data.endDate.toISOString();
 
-        console.log('Dados recebidos:', {
-            startDate: data.startDate,
-            endDate: data.endDate,
-            startDateStr,
-            endDateStr
-        });
-
         // Extrai a data do formato ISO (YYYY-MM-DDTHH:mm:ss.sssZ)
         const startDateOnly = startDateStr.split('T')[0];
         const endDateOnly = endDateStr.split('T')[0];
@@ -75,30 +68,13 @@ export class OccupationService {
         const [startYear, startMonth, startDay] = startDateOnly.split('-').map(Number);
         const [endYear, endMonth, endDay] = endDateOnly.split('-').map(Number);
 
-        console.log('Componentes das datas:', {
-            start: { startDay, startMonth, startYear },
-            end: { endDay, endMonth, endYear }
-        });
-
         // Cria as datas usando os componentes individuais para preservar o dia exato
         const startDate = new Date(startYear, startMonth - 1, startDay, 12, 0, 0);
         const endDate = new Date(endYear, endMonth - 1, endDay, 12, 0, 0);
 
-        console.log('Datas criadas (raw):', {
-            startDate,
-            endDate,
-            startTime: startDate.getTime(),
-            endTime: endDate.getTime()
-        });
-
         if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
             throw new BadRequestException('Datas inválidas');
         }
-
-        console.log('Datas finais:', { 
-            startDate: startDate.toLocaleDateString('pt-BR'),
-            endDate: endDate.toLocaleDateString('pt-BR')
-        });
 
         const [startHour, startMinute] = data.startTime.split(':').map(Number);
         const [endHour, endMinute] = data.endTime.split(':').map(Number);
@@ -120,6 +96,7 @@ export class OccupationService {
             throw new BadRequestException('Selecione pelo menos um dia da semana');
         }
 
+        // Verifica disponibilidade
         const isAvailable = await this.checkAvailability({
             roomId: data.roomId,
             startDate,
@@ -173,20 +150,20 @@ export class OccupationService {
         endTime: string;
         daysOfWeek: number[];
     }): Promise<boolean> {
-        const conflictingOccupations = await this.occupationRepository.findConflictingOccupations(
-            data.roomId,
-            new Date(data.startDate),
-            new Date(data.endDate)
-        );
+        const conflictingOccupation = await this.occupationRepository.findConflicting({
+            roomId: data.roomId,
+            startDate: data.startDate,
+            endDate: data.endDate,
+            startTime: data.startTime,
+            endTime: data.endTime,
+            daysOfWeek: data.daysOfWeek
+        });
 
-        return !conflictingOccupations.some(occupation => 
-            this.hasTimeOverlap(data.startTime, data.endTime, occupation.startTime, occupation.endTime) &&
-            this.hasDayOverlap(data.daysOfWeek, occupation.daysOfWeek)
-        );
+        return !conflictingOccupation;
     }
 
     private hasTimeOverlap(start1: string, end1: string, start2: string, end2: string): boolean {
-        // Converte os horários para minutos para uma comparação
+        // Converte os horários para minutos para uma comparação mais precisa
         const [start1Hour, start1Minute] = start1.split(':').map(Number);
         const [end1Hour, end1Minute] = end1.split(':').map(Number);
         const [start2Hour, start2Minute] = start2.split(':').map(Number);

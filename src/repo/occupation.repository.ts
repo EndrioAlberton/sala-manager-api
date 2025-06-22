@@ -157,14 +157,6 @@ export class OccupationRepository {
             // Verifica se o horário está dentro do intervalo
             const timeMatches = searchTimeInMinutes >= startTimeInMinutes && searchTimeInMinutes < endTimeInMinutes;
 
-            console.log('Verificando horários:', {
-                id: occupation.id,
-                searchTime: time,
-                startTime: occupation.startTime,
-                endTime: occupation.endTime,
-                timeMatches
-            });
-
             return timeMatches;
         });
 
@@ -186,33 +178,46 @@ export class OccupationRepository {
         endTime: string;
         daysOfWeek: number[];
     }): Promise<Occupation | null> {
-        // Procura por ocupações que se sobrepõem no tempo e têm dias da semana em comum
+        // 1. Busca todas as ocupações da sala
         const occupations = await this.repository.find({
-            where: {
+            where: { 
                 roomId: data.roomId,
-                startDate: LessThanOrEqual(data.endDate),
-                endDate: MoreThanOrEqual(data.startDate),
+                startDate: data.startDate // Busca apenas ocupações no mesmo dia
             }
         });
 
-        // Verifica se há sobreposição de horários e dias da semana
+        if (occupations.length === 0) {
+            return null; // Se não há ocupações neste dia, não há conflito
+        }
+
+        // 2. Converte os horários da nova ocupação para minutos para comparação
+        const [newStartHour, newStartMinute] = data.startTime.split(':').map(Number);
+        const [newEndHour, newEndMinute] = data.endTime.split(':').map(Number);
+        const newStartMinutes = newStartHour * 60 + newStartMinute;
+        const newEndMinutes = newEndHour * 60 + newEndMinute;
+
+        // 3. Verifica se alguma ocupação existente conflita com o horário
         for (const occupation of occupations) {
-            // Verifica sobreposição de horários
-            const occupationStart = this.timeToMinutes(occupation.startTime);
-            const occupationEnd = this.timeToMinutes(occupation.endTime);
-            const newStart = this.timeToMinutes(data.startTime);
-            const newEnd = this.timeToMinutes(data.endTime);
+            // Converte os horários da ocupação existente para minutos
+            const [existingStartHour, existingStartMinute] = occupation.startTime.split(':').map(Number);
+            const [existingEndHour, existingEndMinute] = occupation.endTime.split(':').map(Number);
+            const existingStartMinutes = existingStartHour * 60 + existingStartMinute;
+            const existingEndMinutes = existingEndHour * 60 + existingEndMinute;
 
-            const timeOverlap = !(newEnd <= occupationStart || newStart >= occupationEnd);
+            // Verifica se há sobreposição de horários
+            const hasTimeOverlap = (
+                (newStartMinutes >= existingStartMinutes && newStartMinutes < existingEndMinutes) || // Novo início durante ocupação existente
+                (newEndMinutes > existingStartMinutes && newEndMinutes <= existingEndMinutes) || // Novo fim durante ocupação existente
+                (newStartMinutes <= existingStartMinutes && newEndMinutes >= existingEndMinutes) // Nova ocupação engloba ocupação existente
+            );
 
-            // Verifica sobreposição de dias da semana
-            const daysOverlap = occupation.daysOfWeek.some(day => data.daysOfWeek.includes(day));
-
-            if (timeOverlap && daysOverlap) {
+            // Se encontrou sobreposição de horário, retorna a ocupação conflitante
+            if (hasTimeOverlap) {
                 return occupation;
             }
         }
 
+        // Se chegou aqui, não encontrou conflitos
         return null;
     }
 

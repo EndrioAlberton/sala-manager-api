@@ -16,7 +16,23 @@ export class OccupationController {
         endTime: string;
         daysOfWeek: number[];
     }) {
-        return this.occupationService.create(createData);
+        console.log('=== CONTROLLER: INICIANDO CRIAÇÃO DE OCUPAÇÃO ===');
+        console.log('Dados recebidos:', createData);
+
+        try {
+            const result = await this.occupationService.create(createData);
+            console.log('Ocupação criada com sucesso:', result);
+            console.log('=== CONTROLLER: FIM DA CRIAÇÃO DE OCUPAÇÃO ===');
+            return result;
+        } catch (error) {
+            console.error('Erro ao criar ocupação:', error.message);
+            console.log('=== CONTROLLER: ERRO NA CRIAÇÃO DE OCUPAÇÃO ===');
+            
+            if (error.message.includes('Já existe uma ocupação')) {
+                throw new HttpException(error.message, HttpStatus.CONFLICT);
+            }
+            throw error;
+        }
     }
 
     @Get('room/:roomId')
@@ -38,9 +54,19 @@ export class OccupationController {
         endTime: string;
         daysOfWeek: number[];
     }) {
-        return {
-            available: await this.occupationService.checkAvailability(checkData)
-        };
+        console.log('=== CONTROLLER: VERIFICANDO DISPONIBILIDADE ===');
+        console.log('Dados recebidos:', checkData);
+
+        try {
+            const isAvailable = await this.occupationService.checkAvailability(checkData);
+            console.log('Resultado da verificação:', { isAvailable });
+            console.log('=== CONTROLLER: FIM DA VERIFICAÇÃO DE DISPONIBILIDADE ===');
+            return { available: isAvailable };
+        } catch (error) {
+            console.error('Erro ao verificar disponibilidade:', error.message);
+            console.log('=== CONTROLLER: ERRO NA VERIFICAÇÃO DE DISPONIBILIDADE ===');
+            throw error;
+        }
     }
 
     @Get('occupied')
@@ -56,13 +82,6 @@ export class OccupationController {
         
         // Cria a data usando os componentes individuais
         const parsedDate = new Date(year, month - 1, day, 12, 0, 0);
-
-        console.log('Data parseada:', {
-            dateOnly,
-            components: { year, month, day },
-            parsedDate: parsedDate.toLocaleDateString('pt-BR'),
-            dayOfWeek: parsedDate.getDay()
-        });
 
         return this.occupationService.findOccupiedRooms(parsedDate, time);
     }
