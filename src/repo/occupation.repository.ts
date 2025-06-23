@@ -105,10 +105,6 @@ export class OccupationRepository {
     }
 
     async findByDateAndTime(date: Date, time: string): Promise<Occupation[]> {
-        console.log('Buscando no repositório:', {
-            date: date.toLocaleDateString('pt-BR'),
-            time
-        });
 
         // Cria nova data mantendo o dia exato
         const searchDate = new Date(
@@ -117,10 +113,6 @@ export class OccupationRepository {
             date.getDate(),
             12, 0, 0
         );
-
-        console.log('Data de busca:', {
-            searchDate: searchDate.toLocaleDateString('pt-BR')
-        });
 
         // Busca ocupações que incluem a data especificada
         const occupations = await this.repository.find({
@@ -131,16 +123,6 @@ export class OccupationRepository {
                 }
             ]
         });
-
-        console.log('Ocupações encontradas no banco:', occupations.map(o => ({
-            id: o.id,
-            roomId: o.roomId,
-            startDate: o.startDate.toLocaleDateString('pt-BR'),
-            endDate: o.endDate.toLocaleDateString('pt-BR'),
-            startTime: o.startTime,
-            endTime: o.endTime,
-            daysOfWeek: o.daysOfWeek
-        })));
 
         // Filtra as ocupações pelo horário
         const filteredOccupations = occupations.filter(occupation => {
@@ -160,8 +142,6 @@ export class OccupationRepository {
             return timeMatches;
         });
 
-        console.log('Ocupações após filtro de horário:', filteredOccupations.length);
-
         return filteredOccupations;
     }
 
@@ -178,16 +158,37 @@ export class OccupationRepository {
         endTime: string;
         daysOfWeek: number[];
     }): Promise<Occupation | null> {
-        // 1. Busca todas as ocupações da sala
+        console.log('=== REPOSITORY: BUSCANDO CONFLITOS ===');
+        console.log('Parâmetros de busca:', {
+            roomId: data.roomId,
+            startDate: data.startDate.toLocaleDateString('pt-BR'),
+            endDate: data.endDate.toLocaleDateString('pt-BR'),
+            startTime: data.startTime,
+            endTime: data.endTime,
+            daysOfWeek: data.daysOfWeek
+        });
+
+        // 1. Busca todas as ocupações da sala que se sobrepõem com o período da nova ocupação
         const occupations = await this.repository.find({
             where: { 
                 roomId: data.roomId,
-                startDate: data.startDate // Busca apenas ocupações no mesmo dia
+                startDate: LessThanOrEqual(data.endDate), // Ocupações que começam antes ou no fim da nova ocupação
+                endDate: MoreThanOrEqual(data.startDate)  // Ocupações que terminam depois ou no início da nova ocupação
             }
         });
 
+        console.log(`Encontradas ${occupations.length} ocupações no período:`, occupations.map(o => ({
+            id: o.id,
+            startDate: o.startDate.toLocaleDateString('pt-BR'),
+            endDate: o.endDate.toLocaleDateString('pt-BR'),
+            startTime: o.startTime,
+            endTime: o.endTime,
+            daysOfWeek: o.daysOfWeek
+        })));
+
         if (occupations.length === 0) {
-            return null; // Se não há ocupações neste dia, não há conflito
+            console.log('Nenhuma ocupação encontrada - sem conflitos');
+            return null;
         }
 
         // 2. Converte os horários da nova ocupação para minutos para comparação
@@ -196,13 +197,36 @@ export class OccupationRepository {
         const newStartMinutes = newStartHour * 60 + newStartMinute;
         const newEndMinutes = newEndHour * 60 + newEndMinute;
 
-        // 3. Verifica se alguma ocupação existente conflita com o horário
+        // 3. Verifica se alguma ocupação existente conflita
         for (const occupation of occupations) {
+            console.log(`\n--- Verificando ocupação ${occupation.id} ---`);
+            
+            // Verifica se há sobreposição de dias da semana
+            // Converte os dias existentes para números para comparação
+            const existingDaysAsNumbers = occupation.daysOfWeek.map(day => Number(day));
+            const hasDayOverlap = data.daysOfWeek.some(day => existingDaysAsNumbers.includes(day));
+            console.log('Sobreposição de dias:', {
+                novosDias: data.daysOfWeek,
+                existenteDias: occupation.daysOfWeek,
+                existenteDiasNumeros: existingDaysAsNumbers,
+                temSobreposicao: hasDayOverlap
+            });
+
+            if (!hasDayOverlap) {
+                console.log('Sem sobreposição de dias - continuando...');
+                continue;
+            }
+
             // Converte os horários da ocupação existente para minutos
             const [existingStartHour, existingStartMinute] = occupation.startTime.split(':').map(Number);
             const [existingEndHour, existingEndMinute] = occupation.endTime.split(':').map(Number);
             const existingStartMinutes = existingStartHour * 60 + existingStartMinute;
             const existingEndMinutes = existingEndHour * 60 + existingEndMinute;
+
+            console.log('Comparação de horários:', {
+                novo: `${data.startTime}-${data.endTime} (${newStartMinutes}-${newEndMinutes} min)`,
+                existente: `${occupation.startTime}-${occupation.endTime} (${existingStartMinutes}-${existingEndMinutes} min)`
+            });
 
             // Verifica se há sobreposição de horários
             const hasTimeOverlap = (
@@ -211,13 +235,17 @@ export class OccupationRepository {
                 (newStartMinutes <= existingStartMinutes && newEndMinutes >= existingEndMinutes) // Nova ocupação engloba ocupação existente
             );
 
-            // Se encontrou sobreposição de horário, retorna a ocupação conflitante
+            console.log('Sobreposição de horários:', hasTimeOverlap);
+
+            // Se encontrou sobreposição de horário e dias, retorna a ocupação conflitante
             if (hasTimeOverlap) {
+                console.log(`CONFLITO DETECTADO com ocupação ${occupation.id}!`);
                 return occupation;
             }
         }
 
         // Se chegou aqui, não encontrou conflitos
+        console.log('Nenhum conflito encontrado após verificar todas as ocupações');
         return null;
     }
 

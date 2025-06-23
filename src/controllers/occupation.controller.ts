@@ -16,18 +16,10 @@ export class OccupationController {
         endTime: string;
         daysOfWeek: number[];
     }) {
-        console.log('=== CONTROLLER: INICIANDO CRIAÇÃO DE OCUPAÇÃO ===');
-        console.log('Dados recebidos:', createData);
-
         try {
             const result = await this.occupationService.create(createData);
-            console.log('Ocupação criada com sucesso:', result);
-            console.log('=== CONTROLLER: FIM DA CRIAÇÃO DE OCUPAÇÃO ===');
             return result;
         } catch (error) {
-            console.error('Erro ao criar ocupação:', error.message);
-            console.log('=== CONTROLLER: ERRO NA CRIAÇÃO DE OCUPAÇÃO ===');
-            
             if (error.message.includes('Já existe uma ocupação')) {
                 throw new HttpException(error.message, HttpStatus.CONFLICT);
             }
@@ -48,23 +40,31 @@ export class OccupationController {
     @Post('check-availability')
     async checkAvailability(@Body() checkData: {
         roomId: number;
-        startDate: Date;
-        endDate: Date;
+        startDate: string;
+        endDate: string;
         startTime: string;
         endTime: string;
         daysOfWeek: number[];
     }) {
-        console.log('=== CONTROLLER: VERIFICANDO DISPONIBILIDADE ===');
-        console.log('Dados recebidos:', checkData);
-
         try {
-            const isAvailable = await this.occupationService.checkAvailability(checkData);
-            console.log('Resultado da verificação:', { isAvailable });
-            console.log('=== CONTROLLER: FIM DA VERIFICAÇÃO DE DISPONIBILIDADE ===');
+            // Converte as strings de data para objetos Date
+            const [startYear, startMonth, startDay] = checkData.startDate.split('-').map(Number);
+            const [endYear, endMonth, endDay] = checkData.endDate.split('-').map(Number);
+            
+            const startDate = new Date(startYear, startMonth - 1, startDay, 12, 0, 0);
+            const endDate = new Date(endYear, endMonth - 1, endDay, 12, 0, 0);
+
+            const isAvailable = await this.occupationService.checkAvailability({
+                roomId: checkData.roomId,
+                startDate,
+                endDate,
+                startTime: checkData.startTime,
+                endTime: checkData.endTime,
+                daysOfWeek: checkData.daysOfWeek
+            });
+            
             return { available: isAvailable };
         } catch (error) {
-            console.error('Erro ao verificar disponibilidade:', error.message);
-            console.log('=== CONTROLLER: ERRO NA VERIFICAÇÃO DE DISPONIBILIDADE ===');
             throw error;
         }
     }
@@ -74,8 +74,6 @@ export class OccupationController {
         @Query('date') date: string,
         @Query('time') time: string
     ) {
-        console.log('Recebendo requisição de salas ocupadas:', { date, time });
-
         // Extrai a data do formato ISO (YYYY-MM-DDTHH:mm:ss.sssZ)
         const dateOnly = date.split('T')[0];
         const [year, month, day] = dateOnly.split('-').map(Number);

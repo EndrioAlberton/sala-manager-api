@@ -162,6 +162,52 @@ export class OccupationService {
         return !conflictingOccupation;
     }
 
+    async findConflicts(data: {
+        roomId: number;
+        startDate: Date;
+        endDate: Date;
+        startTime: string;
+        endTime: string;
+        daysOfWeek: number[];
+    }): Promise<Occupation | null> {
+        console.log('=== SERVICE: VERIFICANDO CONFLITOS ===');
+        console.log('Dados recebidos:', {
+            roomId: data.roomId,
+            startDate: data.startDate,
+            endDate: data.endDate,
+            startTime: data.startTime,
+            endTime: data.endTime,
+            daysOfWeek: data.daysOfWeek
+        });
+
+        const conflictingOccupation = await this.occupationRepository.findConflicting({
+            roomId: data.roomId,
+            startDate: data.startDate,
+            endDate: data.endDate,
+            startTime: data.startTime,
+            endTime: data.endTime,
+            daysOfWeek: data.daysOfWeek
+        });
+
+        if (conflictingOccupation) {
+            console.log('CONFLITO ENCONTRADO:', {
+                id: conflictingOccupation.id,
+                teacher: conflictingOccupation.teacher,
+                subject: conflictingOccupation.subject,
+                startDate: conflictingOccupation.startDate,
+                endDate: conflictingOccupation.endDate,
+                startTime: conflictingOccupation.startTime,
+                endTime: conflictingOccupation.endTime,
+                daysOfWeek: conflictingOccupation.daysOfWeek
+            });
+        } else {
+            console.log('NENHUM CONFLITO ENCONTRADO');
+        }
+
+        console.log('=== SERVICE: FIM DA VERIFICAÇÃO DE CONFLITOS ===');
+        return conflictingOccupation;
+    }
+
     private hasTimeOverlap(start1: string, end1: string, start2: string, end2: string): boolean {
         // Converte os horários para minutos para uma comparação mais precisa
         const [start1Hour, start1Minute] = start1.split(':').map(Number);
